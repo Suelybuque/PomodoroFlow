@@ -1,0 +1,217 @@
+.settings-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #0d0d0d;
+  color: #e0e0e0;
+}
+
+.settings-content {
+  flex-grow: 1;
+  display: flex;
+  gap: 30px;
+  padding: 10px 10px 10px 0;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-main {
+  flex-grow: 1;
+}
+
+.settings-card {
+  padding: 40px;
+}
+
+.settings-card h2 {
+  font-size: 28px;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #e0e0e0;
+}
+
+.settings-description {
+  color: #a0a0a0;
+  font-size: 16px;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.setting-item:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.setting-item label {
+  font-size: 18px;
+  font-weight: 500;
+  color: #c0c0c0;
+  flex-basis: 60%; /* Give label more space */
+}
+
+.setting-input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-basis: 35%; /* Control input group width */
+  justify-content: flex-end; /* Align input to the right */
+}
+
+.setting-input-group .input-field {
+  width: 80px; /* Fixed width for number input */
+  text-align: center;
+  padding: 10px;
+}
+
+.setting-input-group span {
+  font-size: 16px;
+  color: #c0c0c0;
+  flex-shrink: 0;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #2a2a2a;
+}
+
+/* Footer (shared with Dashboard) */
+.app-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  background-color: #0d0d0d;
+  color: #a0a0a0;
+  font-size: 14px;
+  border-top: 1px solid #1a1a1a;
+  margin-top: 30px;
+}
+
+.social-links {
+  display: flex;
+  gap: 15px;
+}
+
+.social-links a {
+  color: #a0a0a0;
+  font-size: 18px;
+  transition: color 0.2s ease;
+}
+
+.social-links a:hover {
+  color: #007bff;
+}
+
+
+/* Responsive Design for Settings */
+@media (max-width: 1024px) {
+  .settings-content {
+    flex-direction: column; /* Stack sidebar and main content */
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .sidebar {
+    width: 100%; /* Sidebar takes full width */
+    margin-bottom: 10px;
+  }
+
+  .settings-card {
+    padding: 30px;
+  }
+
+  .settings-card h2 {
+    font-size: 24px;
+  }
+
+  .settings-description {
+    font-size: 15px;
+    margin-bottom: 25px;
+  }
+
+  .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+  }
+
+  .setting-item label {
+    font-size: 16px;
+    flex-basis: auto; /* Remove fixed basis */
+  }
+
+  .setting-input-group {
+    width: 100%; /* Make input group take full width */
+    justify-content: flex-start; /* Align input to the left */
+    flex-basis: auto;
+  }
+
+  .setting-input-group .input-field {
+    width: 100px; /* Slightly wider for better touch */
+  }
+
+  .settings-actions {
+    justify-content: center; /* Center the save button */
+    margin-top: 20px;
+    padding-top: 15px;
+  }
+
+  .app-footer {
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-content {
+    padding: 15px;
+  }
+
+  .settings-card {
+    padding: 20px;
+  }
+
+  .settings-card h2 {
+    font-size: 20px;
+  }
+
+  .setting-input-group .input-field {
+    width: 80px;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .setting-input-group span {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-content {
+    padding: 10px;
+  }
+
+  .settings-card {
+    padding: 15px;
+  }
+  .settings-card h2 {
+    font-size: 18px;
+  }
+}

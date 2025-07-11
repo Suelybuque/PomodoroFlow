@@ -1,0 +1,612 @@
+.analytics-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #0d0d0d;
+  color: #e0e0e0;
+}
+
+.analytics-content {
+  flex-grow: 1;
+  padding: 30px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Summary Cards */
+.analytics-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.summary-card {
+  text-align: center;
+  padding: 25px;
+}
+
+.card-header-with-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.card-header-with-icon h3 {
+  font-size: 18px;
+  margin: 0;
+  color: #c0c0c0;
+}
+
+.card-header-with-icon .fas {
+  font-size: 16px;
+  color: #a0a0a0;
+}
+
+.summary-value {
+  font-size: 48px;
+  font-weight: 700;
+  color: #007bff; /* Primary color */
+  margin-bottom: 5px;
+}
+
+.summary-change {
+  font-size: 14px;
+  color: #a0a0a0;
+}
+
+.text-green {
+  color: #28a745; /* Example green */
+}
+
+.text-red {
+  color: #dc3545; /* Example red */
+}
+
+/* Charts Section */
+.analytics-charts .card {
+  padding: 30px;
+  margin-bottom: 30px;
+}
+
+.analytics-charts h3 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+/* Weekly Chart Placeholder Styling */
+.weekly-chart-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); 
+}
+
+.chart-bars {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  width: 100%;
+  height: 160px; /* Max height for bars */
+  margin-bottom: 20px;
+  border-bottom: 1px solid #444; /* X-axis line */
+  padding-bottom: 5px;
+}
+
+.chart-bar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  width: 40px; /* Width of each column */
+}
+
+.bar-stack {
+  display: flex;
+  flex-direction: column-reverse; /* Stack from bottom up */
+  width: 25px; /* Width of individual bars */
+  border-radius: 4px;
+  overflow: hidden; /* For rounded top */
+}
+
+.bar {
+  width: 100%;
+  min-height: 5px; /* Ensure thin bars are visible */
+  border-top: 2px solid rgba(219, 243, 245, 0.1); /* Subtle light border for separation */
+  box-sizing: border-box;
+  border-bottom-left-radius: 1.5px;
+  border-bottom-right-radius: 1.5px;
+}
+
+.bar.focus {
+  background-color: #007bff; /* Blue */
+}
+.bar.short-break {
+  background-color: #ffc107; /* Yellow */
+}
+.bar.long-break {
+  background-color: #fd7e14; /* Orange */
+}
+.bar.meetings {
+  background-color: #6c757d; /* Grey */
+}
+
+.bar-label {
+  margin-top: 5px;
+  font-size: 13px;
+  color: #c0c0c0;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  font-size: 14px;
+  color: #c0c0c0;
+  margin-top: 15px;
+}
+
+.chart-legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.focus-color { background-color: #007bff; }
+.short-break-color { background-color: #ffc107; }
+.long-break-color { background-color: #fd7e14; }
+.meetings-color { background-color: #6c757d; }
+
+
+/* Insights Section */
+.analytics-insights {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr; /* Left panel wider */
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.highly-focused-alert {
+  background-color: #2a2a2a; /* Slightly lighter background */
+  border: 1px solid #007bff; /* Highlight border */
+  padding: 25px;
+  margin-bottom: 20px; /* Space between alert and streaks */
+}
+
+.highly-focused-alert .fas {
+  font-size: 36px;
+  color: #007bff;
+  margin-bottom: 15px;
+}
+
+.highly-focused-alert h3 {
+  font-size: 20px;
+  color: #e0e0e0;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.highly-focused-alert p,
+.highly-focused-alert ul {
+  font-size: 15px;
+  color: #c0c0c0;
+  line-height: 1.6;
+}
+
+.highly-focused-alert ul {
+  padding-left: 20px;
+  list-style-type: disc;
+  margin-top: 15px;
+}
+
+.productivity-streaks {
+  padding: 25px;
+}
+
+.productivity-streaks h3 {
+  font-size: 20px;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.productivity-streaks .keep-up {
+  font-size: 15px;
+  color: #a0a0a0;
+  margin-bottom: 20px;
+}
+
+.streaks-data {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  text-align: center;
+}
+
+.streak-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.streak-item .fas {
+  font-size: 32px;
+  color: #007bff;
+}
+
+.streak-value {
+  font-size: 40px;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
+.streak-label {
+  font-size: 14px;
+  color: #c0c0c0;
+}
+
+.category-chart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.category-name {
+  font-size: 15px;
+  color: #c0c0c0;
+  width: 100px; /* Fixed width for category names */
+  flex-shrink: 0;
+}
+
+.category-bar-wrapper {
+  background-color: #3a3a3a;
+  border-radius: 5px;
+  height: 10px;
+  flex-grow: 1; /* Take remaining space */
+  overflow: hidden;
+}
+
+.category-bar {
+  background-color: #007bff; /* Primary color for bars */
+  height: 100%;
+  border-radius: 5px;
+}
+
+.category-time {
+  font-size: 14px;
+  color: #e0e0e0;
+  font-weight: 500;
+  width: 40px; /* Fixed width for time */
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Task Status Breakdown */
+.task-status-breakdown .card {
+  padding: 30px;
+}
+
+.task-status-breakdown h3 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.status-description {
+  font-size: 15px;
+  color: #a0a0a0;
+  margin-bottom: 25px;
+}
+
+.status-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.status-label {
+  font-size: 16px;
+  color: #c0c0c0;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.status-bar-wrapper {
+  background-color: #3a3a3a;
+  border-radius: 5px;
+  height: 12px;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.status-bar {
+  height: 100%;
+  border-radius: 5px;
+}
+
+.status-bar.completed {
+  background-color: #28a745; /* Green */
+}
+.status-bar.in-progress {
+  background-color: #007bff; /* Blue */
+}
+.status-bar.pending {
+  background-color: #ffc107; /* Yellow */
+}
+.status-bar.overdue {
+  background-color: #dc3545; /* Red */
+}
+
+.status-count {
+  font-size: 15px;
+  color: #e0e0e0;
+  font-weight: 500;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+
+/* Footer (shared with other screens) */
+.app-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  background-color: #0d0d0d;
+  color: #a0a0a0;
+  font-size: 14px;
+  border-top: 1px solid #1a1a1a;
+  margin-top: 30px;
+}
+
+.social-links {
+  display: flex;
+  gap: 15px;
+}
+
+.social-links a {
+  color: #a0a0a0;
+  font-size: 18px;
+  transition: color 0.2s ease;
+}
+
+.social-links a:hover {
+  color: #007bff;
+}
+
+/* Responsive Design for Analytics */
+@media (max-width: 1024px) {
+  .analytics-content {
+    padding: 20px;
+  }
+
+  .analytics-summary {
+    grid-template-columns: 1fr; /* Stack summary cards */
+    gap: 20px;
+  }
+
+  .analytics-charts .card {
+    padding: 25px;
+  }
+
+  .analytics-insights {
+    grid-template-columns: 1fr; /* Stack insight panels */
+    gap: 20px;
+  }
+
+  .highly-focused-alert,
+  .productivity-streaks,
+  .task-status-breakdown .card {
+    padding: 20px;
+  }
+
+  .highly-focused-alert h3,
+  .productivity-streaks h3,
+  .task-status-breakdown h3 {
+    font-size: 18px;
+  }
+
+  .summary-value {
+    font-size: 40px;
+  }
+
+  .chart-bars {
+    height: 150px;
+  }
+
+  .chart-legend {
+    gap: 15px;
+    font-size: 13px;
+  }
+
+  .category-name,
+  .status-label {
+    width: 80px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .analytics-content {
+    padding: 15px;
+  }
+
+  .analytics-summary {
+    gap: 15px;
+  }
+
+  .summary-card {
+    padding: 20px;
+  }
+
+  .card-header-with-icon h3 {
+    font-size: 16px;
+  }
+
+  .summary-value {
+    font-size: 36px;
+  }
+
+  .analytics-charts .card {
+    padding: 20px;
+  }
+
+  .highly-focused-alert,
+  .productivity-streaks,
+  .task-status-breakdown .card {
+    padding: 15px;
+  }
+
+  .highly-focused-alert .fas {
+    font-size: 30px;
+  }
+
+  .highly-focused-alert h3 {
+    font-size: 16px;
+  }
+
+  .highly-focused-alert p,
+  .highly-focused-alert ul {
+    font-size: 14px;
+  }
+
+  .streaks-data {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .streak-item .fas {
+    font-size: 28px;
+  }
+
+  .streak-value {
+    font-size: 32px;
+  }
+
+  .category-item,
+  .status-item {
+    flex-wrap: wrap; /* Allow wrapping */
+  }
+
+  .category-name,
+  .status-label {
+    width: auto; /* Auto width when wrapping */
+    flex-basis: 100%; /* Take full width for label */
+    margin-bottom: 5px;
+  }
+
+  .category-bar-wrapper,
+  .status-bar-wrapper {
+    flex-basis: calc(100% - 60px); /* Adjust width considering time/count */
+  }
+
+  .category-time,
+  .status-count {
+    width: auto;
+  }
+
+  .app-footer {
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .analytics-content {
+    padding: 10px;
+  }
+
+  .summary-card {
+    padding: 15px;
+  }
+
+  .summary-value {
+    font-size: 32px;
+  }
+
+  .chart-bars {
+    height: 120px;
+  }
+
+  .chart-bar-column {
+    width: 30px;
+  }
+
+  .bar-stack {
+    width: 20px;
+  }
+
+  .bar-label {
+    font-size: 11px;
+  }
+
+  .chart-legend {
+    font-size: 12px;
+  }
+
+  .highly-focused-alert h3,
+  .productivity-streaks h3,
+  .task-status-breakdown h3 {
+    font-size: 15px;
+  }
+
+  .streak-value {
+    font-size: 28px;
+  }
+
+  .streak-label {
+    font-size: 12px;
+  }
+
+  .category-item,
+  .status-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .category-name,
+  .status-label {
+    margin-bottom: 0;
+  }
+
+  .category-bar-wrapper,
+  .status-bar-wrapper {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .category-time,
+  .status-count {
+    width: 100%;
+    text-align: left;
+    margin-top: 5px;
+  }
+}
