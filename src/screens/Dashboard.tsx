@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Card from './components/Card';
 import Button from './components/Button';
 import Modal from './components/Modal';
-import { Input, Select } from './components/Input'; // Import Select
+import { Input, Select } from './components/Input';
 import Navbar from './components/Navbar';
 import './css/Dashboard.css';
+import { supabase } from './lib/supabaseClient';
 
-// Mock data for task categories and pomodoro goals
 const taskCategories = [
   { value: 'work', label: 'Work' },
   { value: 'study', label: 'Study' },
@@ -35,71 +35,68 @@ const Dashboard: React.FC = () => {
   const [isOverworkModalOpen, setIsOverworkModalOpen] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('work');
-  const [newTaskPomodoroGoal, setNewTaskPomodoroGoal] = useState('1'); // Storing as string to match select value
-
+  const [newTaskPomodoroGoal, setNewTaskPomodoroGoal] = useState('1');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('active');
+  const [tasks, setTasks] = useState<Task[]>([]);
 
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      name: 'Finish project proposal',
-      category: 'Work',
-      pomodoroGoal: 4,
-      pomodorosCompleted: 2,
-      status: 'active',
-    },
-    {
-      id: '2',
-      name: 'Study React Hooks',
-      category: 'Study',
-      pomodoroGoal: 3,
-      pomodorosCompleted: 0,
-      status: 'active',
-    },
-    {
-      id: '3',
-      name: 'Plan weekend getaway',
-      category: 'Personal',
-      pomodoroGoal: 2,
-      pomodorosCompleted: 0,
-      status: 'active',
-    },
-    {
-      id: '4',
-      name: 'Review code for sprint 2',
-      category: 'Work',
-      pomodoroGoal: 5,
-      pomodorosCompleted: 0,
-      status: 'active',
-    },
-    {
-      id: '5',
-      name: 'Completed Task Example',
-      category: 'Work',
-      pomodoroGoal: 1,
-      pomodorosCompleted: 1,
-      status: 'completed',
-    },
-  ]);
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const handleAddTask = () => {
-    if (!newTaskName.trim()) return;
-    const newTask: Task = {
-      id: String(Date.now()),
-      name: newTaskName,
-      category: newTaskCategory,
-      pomodoroGoal: parseInt(newTaskPomodoroGoal),
-      pomodorosCompleted: 0,
-      status: 'active',
+      if (error) {
+        console.error('Error fetching tasks:', error.message);
+      } else {
+        setTasks(data as Task[]);
+      }
     };
-    setTasks((prevTasks) => [...prevTasks, newTask]);
-    setNewTaskName('');
-    setNewTaskCategory('work');
-    setNewTaskPomodoroGoal('1');
-    setIsAddTaskModalOpen(false);
+
+    fetchTasks();
+  }, []);
+
+  const handleAddTask = async () => {
+    if (!newTaskName.trim()) return;
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([
+        {
+          name: newTaskName,
+          category: newTaskCategory,
+          pomodoroGoal: parseInt(newTaskPomodoroGoal),
+          pomodorosCompleted: 0,
+          status: 'active',
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error('Failed to insert task:', error.message);
+      return;
+    }
+
+    if (data) {
+      setTasks((prev) => [...prev, ...(data as Task[])]);
+      setNewTaskName('');
+      setNewTaskCategory('work');
+      setNewTaskPomodoroGoal('1');
+      setIsAddTaskModalOpen(false);
+    }
   };
 
-  const handleMarkTaskCompleted = (taskId: string) => {
+  const handleMarkTaskCompleted = async (taskId: string) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: 'completed' })
+      .eq('id', taskId);
+
+    if (error) {
+      console.error('Failed to update task:', error.message);
+      return;
+    }
+
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId ? { ...task, status: 'completed' } : task
@@ -247,21 +244,21 @@ const Dashboard: React.FC = () => {
           label="Task Name"
           placeholder="e.g., Finish Q3 Report"
           value={newTaskName}
-          onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setNewTaskName(e.target.value)}
+          onChange={(e: { target: { value: React.SetStateAction<string> } }) => setNewTaskName(e.target.value)}
         />
         <Select
           id="category"
           label="Category"
           options={taskCategories}
           value={newTaskCategory}
-          onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setNewTaskCategory(e.target.value)}
+          onChange={(e: { target: { value: React.SetStateAction<string> } }) => setNewTaskCategory(e.target.value)}
         />
         <Select
           id="pomodoro-goal"
           label="Pomodoro Goal"
           options={pomodoroGoals}
           value={newTaskPomodoroGoal}
-          onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setNewTaskPomodoroGoal(e.target.value)}
+          onChange={(e: { target: { value: React.SetStateAction<string> } }) => setNewTaskPomodoroGoal(e.target.value)}
         />
       </Modal>
 
@@ -269,7 +266,7 @@ const Dashboard: React.FC = () => {
         isOpen={isOverworkModalOpen}
         onClose={() => setIsOverworkModalOpen(false)}
         title="Time to Take a Breather!"
-        showCloseButton={false} // Design indicates no 'x' close button
+        showCloseButton={false}
         footer={
           <>
             <Button variant="primary" onClick={() => setIsOverworkModalOpen(false)}>
@@ -283,7 +280,7 @@ const Dashboard: React.FC = () => {
       >
         <div className="overwork-modal-content">
           <img
-            src="/images/coffee-icon.png" // Placeholder image path, replace with actual
+            src="/images/coffee-icon.png"
             alt="Coffee mug icon"
             className="overwork-icon"
           />
@@ -297,7 +294,6 @@ const Dashboard: React.FC = () => {
       <footer className="app-footer">
         <p>© 2023 Pomodoro Pro.</p>
         <div className="social-links">
-          {/* Placeholder for social icons */}
           <a href="#" aria-label="Github"><i className="fab fa-github"></i></a>
           <a href="#" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
           <a href="#" aria-label="LinkedIn"><i className="fab fa-linkedin"></i></a>
