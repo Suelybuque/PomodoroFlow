@@ -1,11 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import Card from './components/Card';
 import Button from './components/Button';
+import Modal from './components/Modal'; // Assuming Modal is also a component
 import { Input, Select } from './components/Input';
+import TaskList from './components/TaskList';
 import Navbar from './components/Navbar';
 import './css/Dashboard.css';
 import { supabase } from './lib/supabaseClient';
+
+// Import the Task interface from TaskList to ensure consistency
+import type { Task } from './components/TaskList';
 
 const taskCategories = [
   { value: 'work', label: 'Work' },
@@ -21,36 +25,22 @@ const pomodoroGoals = [
   { value: '4', label: '4 Pomodoros (100 min)' },
 ];
 
-interface Task {
-  id: string;
-  name: string;
-  category: string;
-  pomodoroGoal: number;
-  pomodorosCompleted: number;
-  status: 'active' | 'completed';
-}
-
-const POMODORO_DURATION = 25 * 60; // seconds
-const BREAK_AFTER = 4;
+const POMODORO_DURATION = 25 * 60; // 25 minutes in seconds
+const BREAK_AFTER = 4; // Show break modal after 4 pomodoros
 
 const Dashboard: React.FC = () => {
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [isOverworkModalOpen, setIsOverworkModalOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('active');
-
-  // Timer
-  const [secondsLeft, setSecondsLeft] = useState(POMODORO_DURATION);
   const [isRunning, setIsRunning] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(POMODORO_DURATION);
   const [pomodorosDone, setPomodorosDone] = useState(0);
-
-  // Add Task modal states
-  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('work');
   const [newTaskPomodoroGoal, setNewTaskPomodoroGoal] = useState('1');
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('active');
 
-  // Overwork modal state
-  const [isOverworkModalOpen, setIsOverworkModalOpen] = useState(false);
 
   // Fetch tasks once on mount
   useEffect(() => {
@@ -80,7 +70,7 @@ const Dashboard: React.FC = () => {
         setPomodorosDone(0);
       }
 
-      // Update task's pomodorosCompleted & maybe status
+      // Update task's pomodorosCompleted & status
       if (selectedTaskId) {
         setTasks((prev) => {
           return prev.map((task) => {
@@ -115,8 +105,7 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(timerId);
   }, [isRunning, secondsLeft, pomodorosDone, selectedTaskId]);
 
-  // Add new task handler
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // new Task handler
   const handleAddTask = async () => {
     if (!newTaskName.trim()) return;
 
@@ -172,6 +161,16 @@ const Dashboard: React.FC = () => {
       setSelectedTaskId(null);
       setIsRunning(false);
       setSecondsLeft(POMODORO_DURATION);
+    }
+  };
+
+  // Handler for selecting a task (passed to TaskList)
+  const handleSelectTask = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task && task.status === 'active') { // Only allow selection if task is active
+        setSelectedTaskId(taskId);
+        setSecondsLeft(POMODORO_DURATION);
+        setIsRunning(false);
     }
   };
 
@@ -257,6 +256,7 @@ const Dashboard: React.FC = () => {
             </div>
           </Card>
 
+
           <Card className="tasks-card">
             <div className="tasks-header">
               <div className="task-tabs">
@@ -286,52 +286,99 @@ const Dashboard: React.FC = () => {
                 +
               </Button>
             </div>
-            <div className="task-list">
-              {filteredTasks.length === 0 ? (
-                <p className="no-tasks">No tasks to display in this category.</p>
-              ) : (
-                filteredTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`task-item ${selectedTaskId === task.id ? 'selected-task' : ''}`}
-                    onClick={() => {
-                      if (task.status === 'active') {
-                        setSelectedTaskId(task.id);
-                        setSecondsLeft(POMODORO_DURATION);
-                        setIsRunning(false);
-                      }
-                    }}
-                    style={{ cursor: task.status === 'active' ? 'pointer' : 'default' }}
-                    aria-label={`Select task ${task.name} for Pomodoro timer`}
-                  >
-                    <div className="task-left">
-                      <input
-                        type="checkbox"
-                        checked={task.status === 'completed'}
-                        onChange={() => handleToggleTaskStatus(task.id)}
-                        aria-label={`Mark "${task.name}" as ${
-                          task.status === 'completed' ? 'active' : 'completed'
-                        }`}
-                      />
-                      <span className="task-name">{task.name}</span>
-                    </div>
-                    <div className="task-right">
-                      <span className={`task-category ${task.category.toLowerCase()}`}>
-                        {task.category}
-                      </span>
-                      <span className="task-progress">
-                        {task.pomodorosCompleted}/{task.pomodoroGoal}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+
+            {filteredTasks.length === 0 ? (
+              <p className="no-tasks">No tasks to display in this category.</p>
+            ) : (
+              <TaskList
+                tasks={filteredTasks}
+                selectedTaskId={selectedTaskId}
+                onSelectTask={handleSelectTask}
+                onToggleStatus={handleToggleTaskStatus}
+              />
+            )}
+
           </Card>
         </aside>
       </main>
 
-      {/* Your Modal components are managed outside this file */}
+      {/* Add Task Modal */}
+      <Modal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        title="Add New Task"
+        footer={
+          <Button variant="primary" onClick={handleAddTask}>
+            Add Task
+          </Button>
+        }
+      >
+        <div className="add-task-modal-content">
+          <Input
+            id="task-name"
+            label="Task Name"
+            type="text"
+            value={newTaskName}
+            onChange={(e) => setNewTaskName(e.target.value)}
+            placeholder="e.g., Finish project report"
+          />
+          <Select
+            id="task-category"
+            label="Category"
+            options={taskCategories}
+            value={newTaskCategory}
+            onChange={(e) => setNewTaskCategory(e.target.value)}
+          />
+          <Select
+            id="pomodoro-goal"
+            label="Pomodoro Goal"
+            options={pomodoroGoals}
+            value={newTaskPomodoroGoal}
+            onChange={(e) => setNewTaskPomodoroGoal(e.target.value)}
+          />
+        </div>
+      </Modal>
+
+      {/* Overwork Modal */}
+      <Modal
+        isOpen={isOverworkModalOpen}
+        onClose={() => setIsOverworkModalOpen(false)}
+        title="Time to Take a Breather!"
+        showCloseButton={false}
+        footer={
+          <>
+            <Button variant="primary" onClick={() => setIsOverworkModalOpen(false)}>
+              Take a Break Now
+            </Button>
+            <Button variant="ghost" onClick={() => setIsOverworkModalOpen(false)}>
+              Remind Me Later &gt;
+            </Button>
+          </>
+        }
+      >
+        <div className="overwork-modal-content">
+          <img
+            src="/images/coffee-icon.png" // Placeholder image path, replace with actual
+            alt="Coffee mug icon"
+            className="overwork-icon"
+          />
+          <p>
+            You've completed multiple Pomodoros. Give your mind and eyes a well-deserved break to
+            recharge and maintain peak productivity.
+          </p>
+        </div>
+      </Modal>
+
+      <footer className="app-footer">
+        <p>© 2023 Pomodoro Pro.</p>
+        <div className="social-links">
+          {/* Placeholder for social icons */}
+          <a href="#" aria-label="Github"><i className="fab fa-github"></i></a>
+          <a href="#" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
+          <a href="#" aria-label="LinkedIn"><i className="fab fa-linkedin"></i></a>
+          <a href="#" aria-label="Email"><i className="fas fa-envelope"></i></a>
+        </div>
+      </footer>
     </div>
   );
 };
