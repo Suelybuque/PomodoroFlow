@@ -232,7 +232,7 @@
 .streaks-data {
   display: flex;
   justify-content: space-around;
-  gap: 20px;
+  gap: 10px;
   text-align: center;
 }
 

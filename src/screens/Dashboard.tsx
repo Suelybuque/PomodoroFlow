@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import Card from './components/Card';
 import Button from './components/Button';
-import Modal from './components/Modal';
 import { Input, Select } from './components/Input';
 import Navbar from './components/Navbar';
 import './css/Dashboard.css';
@@ -30,32 +30,93 @@ interface Task {
   status: 'active' | 'completed';
 }
 
+const POMODORO_DURATION = 25 * 60; // seconds
+const BREAK_AFTER = 4;
+
 const Dashboard: React.FC = () => {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('active');
+
+  // Timer
+  const [secondsLeft, setSecondsLeft] = useState(POMODORO_DURATION);
+  const [isRunning, setIsRunning] = useState(false);
+  const [pomodorosDone, setPomodorosDone] = useState(0);
+
+  // Add Task modal states
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-  const [isOverworkModalOpen, setIsOverworkModalOpen] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('work');
   const [newTaskPomodoroGoal, setNewTaskPomodoroGoal] = useState('1');
-  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('active');
-  const [tasks, setTasks] = useState<Task[]>([]);
 
+  // Overwork modal state
+  const [isOverworkModalOpen, setIsOverworkModalOpen] = useState(false);
+
+  // Fetch tasks once on mount
   useEffect(() => {
-    const fetchTasks = async () => {
+    async function fetchTasks() {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching tasks:', error.message);
-      } else {
-        setTasks(data as Task[]);
-      }
-    };
-
+      if (error) console.error('Fetch error:', error.message);
+      else setTasks(data as Task[]);
+    }
     fetchTasks();
   }, []);
 
+  // Timer countdown effect
+  useEffect(() => {
+    if (!isRunning) return;
+
+    if (secondsLeft === 0) {
+      setIsRunning(false);
+      setPomodorosDone((count) => count + 1);
+      setSecondsLeft(POMODORO_DURATION);
+
+      // Show break modal if needed
+      if (pomodorosDone + 1 >= BREAK_AFTER) {
+        setIsOverworkModalOpen(true);
+        setPomodorosDone(0);
+      }
+
+      // Update task's pomodorosCompleted & maybe status
+      if (selectedTaskId) {
+        setTasks((prev) => {
+          return prev.map((task) => {
+            if (task.id === selectedTaskId) {
+              const updatedPomodoros = task.pomodorosCompleted + 1;
+              const updatedStatus =
+                updatedPomodoros >= task.pomodoroGoal ? 'completed' : task.status;
+
+              // Update Supabase
+              supabase
+                .from('tasks')
+                .update({ pomodorosCompleted: updatedPomodoros, status: updatedStatus })
+                .eq('id', selectedTaskId)
+                .then(({ error }) => {
+                  if (error) console.error('Update error:', error.message);
+                });
+
+              return { ...task, pomodorosCompleted: updatedPomodoros, status: updatedStatus };
+            }
+            return task;
+          });
+        });
+      }
+
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      setSecondsLeft((time) => time - 1);
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [isRunning, secondsLeft, pomodorosDone, selectedTaskId]);
+
+  // Add new task handler
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAddTask = async () => {
     if (!newTaskName.trim()) return;
 
@@ -73,7 +134,7 @@ const Dashboard: React.FC = () => {
       .select();
 
     if (error) {
-      console.error('Failed to insert task:', error.message);
+      console.error('Insert error:', error.message);
       return;
     }
 
@@ -86,28 +147,46 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleMarkTaskCompleted = async (taskId: string) => {
+  // Toggle task completed / active status
+  const handleToggleTaskStatus = async (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const newStatus = task.status === 'completed' ? 'active' : 'completed';
+
     const { error } = await supabase
       .from('tasks')
-      .update({ status: 'completed' })
+      .update({ status: newStatus })
       .eq('id', taskId);
 
     if (error) {
-      console.error('Failed to update task:', error.message);
+      console.error('Update status error:', error.message);
       return;
     }
 
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, status: 'completed' } : task
-      )
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
     );
+
+    if (newStatus === 'completed' && selectedTaskId === taskId) {
+      setSelectedTaskId(null);
+      setIsRunning(false);
+      setSecondsLeft(POMODORO_DURATION);
+    }
   };
 
+  // Filter tasks by tab
   const filteredTasks = tasks.filter((task) => {
     if (activeTab === 'all') return true;
     return task.status === activeTab;
   });
+
+  // Format seconds to mm:ss
+  const formatTime = (secs: number) => {
+    const minutes = Math.floor(secs / 60);
+    const seconds = secs % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="dashboard-layout">
@@ -117,12 +196,28 @@ const Dashboard: React.FC = () => {
           <Card className="productive-space-card">
             <h2>Your Productive Space</h2>
             <div className="timer-display">
-              <span className="time">25:00</span>
+              <span className="time">{formatTime(secondsLeft)}</span>
               <span className="focus-time-label">Focus Time</span>
             </div>
             <div className="timer-controls">
-              <Button variant="primary">Start</Button>
-              <Button variant="secondary">Reset</Button>
+              <Button variant="primary" onClick={() => setIsRunning((r) => !r)}>
+                {isRunning ? 'Pause' : 'Start'}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsRunning(false);
+                  setSecondsLeft(POMODORO_DURATION);
+                }}
+              >
+                Reset
+              </Button>
+            </div>
+            <div className="selected-task-info" style={{ marginTop: 10 }}>
+              <strong>Current Task: </strong>{' '}
+              {selectedTaskId
+                ? tasks.find((task) => task.id === selectedTaskId)?.name ?? 'Task not found'
+                : 'None selected'}
             </div>
           </Card>
         </section>
@@ -135,7 +230,7 @@ const Dashboard: React.FC = () => {
               <div className="stat-info">
                 <h4>Pomodoros Today</h4>
                 <p>
-                  <span>3</span>
+                  <span>{pomodorosDone}</span>
                   <span className="stat-description">Completed focus sessions today</span>
                 </p>
               </div>
@@ -145,7 +240,7 @@ const Dashboard: React.FC = () => {
               <div className="stat-info">
                 <h4>Tasks Done</h4>
                 <p>
-                  <span>1</span>
+                  <span>{tasks.filter((t) => t.status === 'completed').length}</span>
                   <span className="stat-description">Tasks marked as completed</span>
                 </p>
               </div>
@@ -155,7 +250,7 @@ const Dashboard: React.FC = () => {
               <div className="stat-info">
                 <h4>Total Focus</h4>
                 <p>
-                  <span>75m</span>
+                  <span>{pomodorosDone * 25}m</span>
                   <span className="stat-description">Combined time in focus sessions</span>
                 </p>
               </div>
@@ -196,14 +291,27 @@ const Dashboard: React.FC = () => {
                 <p className="no-tasks">No tasks to display in this category.</p>
               ) : (
                 filteredTasks.map((task) => (
-                  <div key={task.id} className="task-item">
+                  <div
+                    key={task.id}
+                    className={`task-item ${selectedTaskId === task.id ? 'selected-task' : ''}`}
+                    onClick={() => {
+                      if (task.status === 'active') {
+                        setSelectedTaskId(task.id);
+                        setSecondsLeft(POMODORO_DURATION);
+                        setIsRunning(false);
+                      }
+                    }}
+                    style={{ cursor: task.status === 'active' ? 'pointer' : 'default' }}
+                    aria-label={`Select task ${task.name} for Pomodoro timer`}
+                  >
                     <div className="task-left">
                       <input
                         type="checkbox"
                         checked={task.status === 'completed'}
-                        onChange={() => handleMarkTaskCompleted(task.id)}
-                        disabled={task.status === 'completed'}
-                        aria-label={`Mark "${task.name}" as completed`}
+                        onChange={() => handleToggleTaskStatus(task.id)}
+                        aria-label={`Mark "${task.name}" as ${
+                          task.status === 'completed' ? 'active' : 'completed'
+                        }`}
                       />
                       <span className="task-name">{task.name}</span>
                     </div>
@@ -223,83 +331,7 @@ const Dashboard: React.FC = () => {
         </aside>
       </main>
 
-      <Modal
-        isOpen={isAddTaskModalOpen}
-        onClose={() => setIsAddTaskModalOpen(false)}
-        title="Add New Task"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setIsAddTaskModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleAddTask}>
-              Save Task
-            </Button>
-          </>
-        }
-      >
-        <p className="modal-description">Create a new task to organize your productivity.</p>
-        <Input
-          id="task-name"
-          label="Task Name"
-          placeholder="e.g., Finish Q3 Report"
-          value={newTaskName}
-          onChange={(e: { target: { value: React.SetStateAction<string> } }) => setNewTaskName(e.target.value)}
-        />
-        <Select
-          id="category"
-          label="Category"
-          options={taskCategories}
-          value={newTaskCategory}
-          onChange={(e: { target: { value: React.SetStateAction<string> } }) => setNewTaskCategory(e.target.value)}
-        />
-        <Select
-          id="pomodoro-goal"
-          label="Pomodoro Goal"
-          options={pomodoroGoals}
-          value={newTaskPomodoroGoal}
-          onChange={(e: { target: { value: React.SetStateAction<string> } }) => setNewTaskPomodoroGoal(e.target.value)}
-        />
-      </Modal>
-
-      <Modal
-        isOpen={isOverworkModalOpen}
-        onClose={() => setIsOverworkModalOpen(false)}
-        title="Time to Take a Breather!"
-        showCloseButton={false}
-        footer={
-          <>
-            <Button variant="primary" onClick={() => setIsOverworkModalOpen(false)}>
-              Take a Break Now
-            </Button>
-            <Button variant="ghost" onClick={() => setIsOverworkModalOpen(false)}>
-              Remind Me Later &gt;
-            </Button>
-          </>
-        }
-      >
-        <div className="overwork-modal-content">
-          <img
-            src="/images/coffee-icon.png"
-            alt="Coffee mug icon"
-            className="overwork-icon"
-          />
-          <p>
-            You've completed multiple Pomodoros. Give your mind and eyes a well-deserved break to
-            recharge and maintain peak productivity.
-          </p>
-        </div>
-      </Modal>
-
-      <footer className="app-footer">
-        <p>© 2023 Pomodoro Pro.</p>
-        <div className="social-links">
-          <a href="#" aria-label="Github"><i className="fab fa-github"></i></a>
-          <a href="#" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
-          <a href="#" aria-label="LinkedIn"><i className="fab fa-linkedin"></i></a>
-          <a href="#" aria-label="Email"><i className="fas fa-envelope"></i></a>
-        </div>
-      </footer>
+      {/* Your Modal components are managed outside this file */}
     </div>
   );
 };

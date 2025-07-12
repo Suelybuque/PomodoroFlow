@@ -11,6 +11,7 @@ interface ModalProps {
   showCloseButton?: boolean;
 }
 
+
 const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
