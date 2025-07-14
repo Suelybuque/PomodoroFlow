@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import './css/Modal.css';
-import Button from './Button'; // Assuming Button component is available
+import Button from './Button'; 
 
 interface ModalProps {
   isOpen: boolean;
