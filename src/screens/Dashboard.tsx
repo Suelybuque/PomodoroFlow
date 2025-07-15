@@ -9,8 +9,10 @@ import Timer from './components/Timer';
 import Stats from './components/Stats';
 import Footer from './components/Footer';
 import AddEditTaskModal from './components/AddEditTaskModal'; 
+import { logPomodoroSession } from './components/logSessions';
 import './css/Dashboard.css';
 import { supabase } from './lib/supabaseClient';
+import { useOverworkEngine } from './components/useOverworkEngine.tsx';
 // Import only the constants 
 import {
   POMODORO_DURATION,
@@ -60,6 +62,14 @@ const Dashboard: React.FC = () => {
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
   const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
 
+
+useOverworkEngine({
+  pomodorosDoneInCycle,
+  isRunning,
+  timerMode,
+  setIsOverworkModalOpen,
+});
+
   // Fetch tasks once on mount
   useEffect(() => {
     async function fetchTasks() {
@@ -81,24 +91,9 @@ const Dashboard: React.FC = () => {
       setPomodorosDoneInCycle(nextPomodorosDoneInCycle);
 
       // --- NEW LOGIC: Log completed Pomodoro session to Supabase ---
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('pomodoro_sessions') // Ensure this table exists in your Supabase project
-        .insert([
-          {
-            task_id: selectedTaskId, // Link to the task, if one was selected
-            duration: POMODORO_DURATION / 60, // Store duration in minutes
-            session_type: 'pomodoro',
-            // created_at will default to NOW() if set up in Supabase, or add `created_at: new Date().toISOString()`
-          },
-        ])
-        .select();
+      await logPomodoroSession({ taskId: selectedTaskId, duration: POMODORO_DURATION / 60 });
 
-      if (sessionError) {
-        console.error('Error logging pomodoro session:', sessionError.message);
-      } else {
-        console.log('Pomodoro session logged:', sessionData);
-      }
-      // --- END NEW LOGIC ---
+
 
       // Update selected task's pomodorosCompleted and status
       if (selectedTaskId) {
@@ -462,9 +457,17 @@ const Dashboard: React.FC = () => {
             }}>
               {timerMode === 'pomodoro' ? 'Start Focus' : 'Start Break'}
             </Button>
-            <Button variant="ghost" onClick={() => setIsBreakCompleteModalOpen(false)}>
-              Close
-            </Button>
+           <Button
+  variant="ghost"
+  onClick={() => {
+    setIsBreakCompleteModalOpen(false);
+    setTimerMode('pomodoro');         // Switch mode back
+    setSecondsLeft(POMODORO_DURATION); // Reset timer
+    setIsRunning(false);               // Pause until user presses "Start Focus"
+  }}
+>
+  Skip Break
+</Button>
           </>
         }
       >
@@ -476,37 +479,28 @@ const Dashboard: React.FC = () => {
           />
           <p>{getBreakCompleteModalMessage()}</p>
         </div>
+         
       </Modal>
 
-      {/* Original Overwork Modal (kept separate as per original context) */}
-      <Modal
-        isOpen={isOverworkModalOpen}
-        onClose={() => setIsOverworkModalOpen(false)}
-        title="Time to Take a Breather!"
-        showCloseButton={false}
-        footer={
-          <>
-            <Button variant="primary" onClick={() => setIsOverworkModalOpen(false)}>
-              Take a Break Now
-            </Button>
-            <Button variant="ghost" onClick={() => setIsOverworkModalOpen(false)}>
-              Remind Me Later &gt;
-            </Button>
-          </>
-        }
-      >
-        <div className="overwork-modal-content">
-          <img
-            src={COFFEE_ICON_PATH}
-            alt="Coffee mug icon"
-            className="overwork-icon"
-          />
-          <p>
-            You've completed multiple Pomodoros. Give your mind and eyes a well-deserved break to
-            recharge and maintain peak productivity.
-          </p>
-        </div>
-      </Modal>
+    <Modal
+  isOpen={isOverworkModalOpen}
+  onClose={() => setIsOverworkModalOpen(false)}
+  title="You're Overworking 😓"
+  footer={
+    <>
+      <Button variant="primary" onClick={() => setIsOverworkModalOpen(false)}>
+        Take a Break
+      </Button>
+      <Button variant="ghost" onClick={() => setIsOverworkModalOpen(false)}>
+        Skip for Now
+      </Button>
+    </>
+  }
+>
+  <p>
+    You've completed 4 Pomodoros without a break. Time to recharge your focus and avoid burnout!
+  </p>
+</Modal>
 
       <Footer />
     </div>
