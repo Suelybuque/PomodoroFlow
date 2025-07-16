@@ -1,6 +1,6 @@
 
 
-export const POMODORO_DURATION = 5;//25 * 60; // seconds
+export const POMODORO_DURATION = 25 * 60; // seconds
 export const SHORT_BREAK_DURATION =5 * 60; // seconds
 export const LONG_BREAK_DURATION =5 * 60; // seconds
 export const POMODOROS_BEFORE_LONG_BREAK = 4; // Number of pomodoros before a long break
