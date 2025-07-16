@@ -151,30 +151,67 @@ const Dashboard: React.FC = () => {
     }
   }, [timerMode, pomodorosDoneInCycle, selectedTaskId]);
 
-  const handleSaveTask = async () => {
-    if (!newTaskName.trim()) return;
+const handleSaveTask = async () => {
+  if (!newTaskName.trim()) return;
 
-    if (editingTask) {
-      const { data } = await supabase
-        .from('tasks')
-        .update({ name: newTaskName, category: newTaskCategory, pomodoroGoal: parseInt(newTaskPomodoroGoal) })
-        .eq('id', editingTask.id)
-        .select();
-      if (data) setTasks(prev => prev.map(task => task.id === editingTask.id ? (data[0] as Task) : task));
-    } else {
-      const { data } = await supabase
-        .from('tasks')
-        .insert([{ name: newTaskName, category: newTaskCategory, pomodoroGoal: parseInt(newTaskPomodoroGoal), pomodorosCompleted: 0, status: 'active' }])
-        .select();
-      if (data) setTasks(prev => [...prev, ...(data as Task[])]);
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    console.error("No authenticated user found.");
+    return;
+  }
+
+  const user_id = session.user.id;
+
+  if (editingTask) {
+    const { data } = await supabase
+      .from('tasks')
+      .update({
+        name: newTaskName,
+        category: newTaskCategory,
+        pomodoroGoal: parseInt(newTaskPomodoroGoal),
+      })
+      .eq('id', editingTask.id)
+      .select();
+
+    if (data) {
+      setTasks(prev => prev.map(task => task.id === editingTask.id ? (data[0] as Task) : task));
+    }
+  } else {
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([
+        {
+          name: newTaskName,
+          category: newTaskCategory,
+          pomodoroGoal: parseInt(newTaskPomodoroGoal),
+          pomodorosCompleted: 0,
+          status: 'active',
+          user_id, // ✅ include user_id here
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error("Insert error:", error.message);
+      return;
     }
 
-    setNewTaskName('');
-    setNewTaskCategory(TASK_CATEGORIES[0]?.value || 'work');
-    setNewTaskPomodoroGoal(POMODORO_GOALS[0]?.value || '1');
-    setEditingTask(null);
-    setIsAddTaskModalOpen(false);
-  };
+    if (data) {
+      setTasks(prev => [...prev, ...(data as Task[])]);
+    }
+  }
+
+  setNewTaskName('');
+  setNewTaskCategory(TASK_CATEGORIES[0]?.value || 'work');
+  setNewTaskPomodoroGoal(POMODORO_GOALS[0]?.value || '1');
+  setEditingTask(null);
+  setIsAddTaskModalOpen(false);
+};
+
 
   const getBreakCompleteModalTitle = () =>
     timerMode === 'pomodoro' ? 'Time to Focus!' : 'Break Time!';
