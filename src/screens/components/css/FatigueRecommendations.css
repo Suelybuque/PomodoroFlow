@@ -1,0 +1,19 @@
+.fatigue-recommendations {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.fatigue-recommendations ul {
+  padding-left: 20px;
+  margin-top: 8px;
+}
+
+.fatigue-recommendations li {
+  margin-bottom: 6px;
+}
+
+.fatigue-recommendations .mini-affirmation {
+  margin-top: 12px;
+  font-style: italic;
+  color: #a0d8ef;
+}
