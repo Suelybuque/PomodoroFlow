@@ -26,7 +26,7 @@ interface Task {
   status: 'active' | 'completed';
 }
 
-// Data structures for charts
+// Data structures for charts (defined here for Analytics.tsx's data management)
 interface WeeklyFocusDataPoint {
   day: string;
   focus: number; // in minutes
@@ -57,12 +57,12 @@ const Analytics: React.FC = () => {
   });
   const [tasks, setTasks] = useState<Task[]>([]); // State to store all tasks for breakdown calculations
 
-  // New states for dynamic change indicators
-  const [pomodorosTodayValue, setPomodorosTodayValue] = useState<number | null>(null); // Renamed for clarity
-  const [tasksCompletedTodayValue, setTasksCompletedTodayValue] = useState<number | null>(null); // Renamed for clarity
-  const [averageFocusTimeTodayValue, setAverageFocusTimeTodayValue] = useState<number | null>(null); // Renamed for clarity
+  // States for dynamic "today's value" indicators
+  const [pomodorosTodayValue, setPomodorosTodayValue] = useState<number | null>(null);
+  const [tasksCompletedTodayValue, setTasksCompletedTodayValue] = useState<number | null>(null);
+  const [averageFocusTimeTodayValue, setAverageFocusTimeTodayValue] = useState<number | null>(null);
 
-  // New states for productivity streaks
+  // States for productivity streaks
   const [currentStreak, setCurrentStreak] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
 
@@ -77,7 +77,7 @@ const Analytics: React.FC = () => {
         console.error('Error fetching pomodoro sessions:', sessionsError.message);
         return;
       }
-      console.log('Fetched Pomodoro Sessions:', sessions); // Debug log
+      console.log('Fetched Pomodoro Sessions:', sessions);
 
       // 2. Fetch Tasks
       const { data: fetchedTasks, error: tasksError } = await supabase
@@ -88,56 +88,48 @@ const Analytics: React.FC = () => {
         console.error('Error fetching tasks:', tasksError.message);
         return;
       }
-      setTasks(fetchedTasks as Task[]); // Store fetched tasks in state for later use
-      console.log('Fetched Tasks:', fetchedTasks); // Debug log
+      setTasks(fetchedTasks as Task[]);
+      console.log('Fetched Tasks:', fetchedTasks);
 
       // --- Data Processing ---
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-      yesterday.setHours(0, 0, 0, 0);
+      // Removed unused 'yesterday' variable and related calculations
+      // const yesterday = new Date(today);
+      // yesterday.setDate(today.getDate() - 1);
+      // yesterday.setHours(0, 0, 0, 0);
 
-      // Filter sessions for today and yesterday
-      const todaySessions = sessions.filter(session => {
+      const todaySessions = sessions.filter((session: PomodoroSession) => { // Explicitly type session to use PomodoroSession interface
         const sessionDate = new Date(session.created_at);
         return sessionDate >= today && session.session_type === 'pomodoro';
       });
-      const yesterdaySessions = sessions.filter(session => {
-        const sessionDate = new Date(session.created_at);
-        return sessionDate >= yesterday && sessionDate < today && session.session_type === 'pomodoro';
-      });
+      // Removed unused 'yesterdaySessions' variable
+      // const yesterdaySessions = sessions.filter(session => { ... });
 
-      // Pomodoros Completed Today
       setPomodorosCompletedToday(todaySessions.length);
-      // Now reflects today's total for the "change" indicator
       setPomodorosTodayValue(todaySessions.length);
 
-
-      // Tasks Completed Count (from tasks table)
       const completedTasksToday = fetchedTasks.filter(task => new Date(task.created_at).setHours(0,0,0,0) === today.getTime() && task.status === 'completed');
-      const completedTasksYesterday = fetchedTasks.filter(task => new Date(task.created_at).setHours(0,0,0,0) === yesterday.getTime() && task.status === 'completed');
-      setTasksCompletedCount(fetchedTasks.filter(task => task.status === 'completed').length); // Total completed tasks
-      // Now reflects today's total for the "change" indicator
+      // Removed unused 'completedTasksYesterday' variable
+      // const completedTasksYesterday = fetchedTasks.filter(task => { ... });
+      setTasksCompletedCount(fetchedTasks.filter(task => task.status === 'completed').length);
       setTasksCompletedTodayValue(completedTasksToday.length);
 
-
-      // Average Focus Time (from pomodoro sessions)
-      const allFocusSessions = sessions.filter(session => session.session_type === 'pomodoro');
+      // Removed unused 'allFocusSessions' variable
+      // const allFocusSessions = sessions.filter(session => session.session_type === 'pomodoro');
       const totalFocusTimeSumToday = todaySessions.reduce((sum, session) => sum + session.duration, 0);
-     // const totalFocusTimeSumYesterday = yesterdaySessions.reduce((sum, session) => sum + session.duration, 0);
+      // Removed unused 'totalFocusTimeSumYesterday' variable
+      // const totalFocusTimeSumYesterday = yesterdaySessions.reduce((sum, session) => sum + session.duration, 0);
 
       const avgToday = todaySessions.length > 0 ? totalFocusTimeSumToday / todaySessions.length : 0;
-     // const avgYesterday = yesterdaySessions.length > 0 ? totalFocusTimeSumYesterday / yesterdaySessions.length : 0;
+      // Removed unused 'avgYesterday' variable
+      // const avgYesterday = yesterdaySessions.length > 0 ? totalFocusTimeSumYesterday / yesterdaySessions.length : 0;
 
       setAverageFocusTime(avgToday);
-      // Now reflects today's total for the "change" indicator
       setAverageFocusTimeTodayValue(avgToday);
 
-
-      // Weekly Focus Data
       const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const weekDataMap = new Map<string, { focus: number; shortBreak: number; longBreak: number; meetings: number }>();
       daysOfWeek.forEach(day => weekDataMap.set(day, { focus: 0, shortBreak: 0, longBreak: 0, meetings: 0 }));
@@ -166,8 +158,6 @@ const Analytics: React.FC = () => {
       }));
       setWeeklyFocusData(processedWeeklyFocusData);
 
-
-      // Focus Time by Category Data - MODIFIED TO USE COMPLETED TASKS
       const categoryTimeMap = new Map<string, number>();
 
       fetchedTasks.forEach(task => {
@@ -176,12 +166,14 @@ const Analytics: React.FC = () => {
           categoryTimeMap.set(task.category, currentCategoryTime + (task.pomodorosCompleted * POMODORO_DURATION_IN_MINUTES));
         }
       });
-      setFocusTimeByCategoryData(Array.from(categoryTimeMap.entries()).map(([category, time]) => ({
+      const processedFocusTimeByCategoryData = Array.from(categoryTimeMap.entries()).map(([category, time]) => ({
         category,
         time,
-      })));
+      }));
+      setFocusTimeByCategoryData(processedFocusTimeByCategoryData);
+      console.log('Analytics: Processed Focus Time by Category Data (to Chart):', processedFocusTimeByCategoryData);
 
-      // Task Status Breakdown (from tasks table)
+
       const statusCounts = {
         completed: fetchedTasks.filter(task => task.status === 'completed').length,
         inProgress: fetchedTasks.filter(task => task.status === 'active' && task.pomodorosCompleted > 0).length,
@@ -190,8 +182,7 @@ const Analytics: React.FC = () => {
       };
       setTaskStatusBreakdown(statusCounts);
 
-      // --- Productivity Streaks Calculation ---
-      const pomodoroDates = new Set<string>(); // Store dates as 'YYYY-MM-DD'
+      const pomodoroDates = new Set<string>();
       sessions.forEach(session => {
         if (session.session_type === 'pomodoro') {
           const date = new Date(session.created_at);
@@ -206,7 +197,8 @@ const Analytics: React.FC = () => {
       let tempStreak = 0;
 
       const todayIso = today.toISOString().split('T')[0];
-      const yesterdayIso = yesterday.toISOString().split('T')[0];
+      // Recalculate yesterdayIso here for streak logic, as the variable itself was removed
+      const yesterdayIso = new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       if (pomodoroDates.has(todayIso)) {
         tempStreak = 1;
@@ -266,11 +258,9 @@ const Analytics: React.FC = () => {
   // Helper for change indicator text and color
   const getChangeText = (value: number | null, unit: string = '') => {
     if (value === null) return '';
-    // As per the request, 'value' now represents today's total for the metric.
-    // The text 'yesterday' is retained to avoid changing element names as per previous instruction.
-    const sign = value >= 0 ? '+' : ''; // Use >= 0 to show '+' for 0 or positive values
+    const sign = value >= 0 ? '+' : '';
     const colorClass = value > 0 ? 'text-green' : (value < 0 ? 'text-red' : 'text-gray');
-    return <p className={`summary-change ${colorClass}`}>{`${sign}${value}${unit} today`}</p>; // Changed "yesterday" to "today"
+    return <p className={`summary-change ${colorClass}`}>{`${sign}${value}${unit} today`}</p>;
   };
 
   return (
