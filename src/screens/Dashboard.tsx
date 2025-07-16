@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */ // Keep this for other potential unused variables
+//* eslint-disable react-hooks/exhaustive-deps */
+//* eslint-disable @typescript-eslint/no-unused-vars */ // Keep this for other potential unused variables
 import React, { useEffect, useState, useCallback } from 'react';
 import Card from './components/Card';
 import Button from './components/Button';
@@ -54,24 +54,20 @@ const Dashboard: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const [isBreakCompleteModalOpen, setIsBreakCompleteModalOpen] = useState(false);
-  // Removed: const [isBreakSkipped, setIsBreakSkipped] = useState(false);
-  const [fatigueRule, setFatigueRule] = useState<null | 'pomodoro-cycle' | 'long-session-over-2-hours'>(null); // Removed 'skipped-3-breaks' from type
+  const [fatigueRule, setFatigueRule] = useState<null | 'pomodoro-cycle' | 'long-session-over-2-hours'>(null);
   const [isFatigueModalOpen, setIsFatigueModalOpen] = useState(false);
 
   // Added eslint-disable to suppress unused variable errors for deployment
   // A more robust solution would involve implementing the delete confirmation logic fully.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
 
-  // Removed: handleBreakSkippedProcessed callback
+ // const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
+  
+ // const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
 
   useOverworkEngine({
     pomodorosDoneInCycle,
     isRunning,
     timerMode,
-    // Removed: breakSkippedFlag and onBreakSkippedProcessed
     onFatigueDetected: (rule) => {
       setFatigueRule(rule);
       setIsFatigueModalOpen(true);
@@ -117,12 +113,10 @@ const Dashboard: React.FC = () => {
       }
 
       setIsBreakCompleteModalOpen(true);
-      // Removed: setIsBreakSkipped(false);
     } else {
       setTimerMode('pomodoro');
       setSecondsLeft(POMODORO_DURATION);
       setIsBreakCompleteModalOpen(true);
-      // Removed: setIsBreakSkipped(false);
     }
   }, [timerMode, pomodorosDoneInCycle, selectedTaskId]);
 
@@ -279,7 +273,6 @@ const Dashboard: React.FC = () => {
               setTimerMode('pomodoro');
               setSecondsLeft(POMODORO_DURATION);
               setIsRunning(false);
-              // Removed: setIsBreakSkipped(true);
               console.log('Dashboard: Skip Break clicked (logic removed).'); // Log instead
             }}>
               Skip Break

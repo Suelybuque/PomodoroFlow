@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+//* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import Card from './components/Card';
@@ -26,7 +26,7 @@ interface Task {
   status: 'active' | 'completed';
 }
 
-// Data structures for charts (defined here for Analytics.tsx's data management)
+// Data structures for charts
 interface WeeklyFocusDataPoint {
   day: string;
   focus: number; // in minutes
