@@ -57,6 +57,32 @@ const Dashboard: React.FC = () => {
   const [fatigueRule, setFatigueRule] = useState<null | 'pomodoro-cycle' | 'long-session-over-2-hours'>(null);
   const [isFatigueModalOpen, setIsFatigueModalOpen] = useState(false);
 
+
+  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
+  const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
+
+ 
+  const handleDeleteConfirmed = async () => {
+    if (taskToDeleteId) {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskToDeleteId);
+
+      if (error) {
+        console.error('Error deleting task:', error.message);
+       
+      } else {
+        setTasks(prev => prev.filter(task => task.id !== taskToDeleteId));
+        console.log(`Task ${taskToDeleteId} deleted successfully.`);
+      }
+      setTaskToDeleteId(null);
+      setIsConfirmDeleteModalOpen(false);
+    }
+  };
+  
+
+
   useOverworkEngine({
     pomodorosDoneInCycle,
     isRunning,
@@ -217,9 +243,10 @@ const Dashboard: React.FC = () => {
                   setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
                 }}
                 onDeleteTask={(taskId) => {
-              
-                  console.log(`Delete task requested for ID: ${taskId}`); 
                  
+                  setTaskToDeleteId(taskId);
+                  setIsConfirmDeleteModalOpen(true);
+                
                 }}
                 onEditTask={(task) => {
                   setEditingTask(task);
@@ -247,6 +274,27 @@ const Dashboard: React.FC = () => {
         onSave={handleSaveTask}
       />
 
+      
+      <Modal
+        isOpen={isConfirmDeleteModalOpen}
+        onClose={() => setIsConfirmDeleteModalOpen(false)}
+        title="Confirm Deletion"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setIsConfirmDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleDeleteConfirmed}>
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p>Are you sure you want to delete this task?</p>
+        <p className="text-sm text-gray-500">This action cannot be undone.</p>
+      </Modal>
+      
+
       <Modal
         isOpen={isBreakCompleteModalOpen}
         onClose={() => setIsBreakCompleteModalOpen(false)}
@@ -265,6 +313,7 @@ const Dashboard: React.FC = () => {
               setTimerMode('pomodoro');
               setSecondsLeft(POMODORO_DURATION);
               setIsRunning(false);
+              console.log('Dashboard: Skip Break clicked (logic removed).');
             }}>
               Skip Break
             </Button>
