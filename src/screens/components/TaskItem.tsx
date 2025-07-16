@@ -1,6 +1,6 @@
 import React from "react";
 import type { Task } from "./TaskList";
-import Button from './Button'; // Assuming Button component is in the same components folder
+import Button from './Button'; 
 
 interface TaskItemProps {
   task: Task;
@@ -47,7 +47,7 @@ export default class TaskItem extends React.Component<TaskItemProps> {
             aria-label={`Edit task ${task.name}`}
             className="task-action-button"
           >
-            <i className="fas fa-edit"></i> Edit {/* Added " Edit" text */}
+            <i className="fas fa-edit"></i> Edit 
           </Button>
           <Button
             variant="ghost"
@@ -59,7 +59,7 @@ export default class TaskItem extends React.Component<TaskItemProps> {
             aria-label={`Delete task ${task.name}`}
             className="task-action-button"
           >
-            <i className="fas fa-trash"></i> Delete {/* Added " Delete" text */}
+            <i className="fas fa-trash"></i> Delete 
           </Button>
         </div>
       </div>

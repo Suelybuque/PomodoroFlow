@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import Button from './Button'; // Assuming Button component is available
+import Button from './Button'; 
 
 interface TimerProps {
   secondsLeft: number;
@@ -7,9 +7,9 @@ interface TimerProps {
   isRunning: boolean;
   setIsRunning: React.Dispatch<React.SetStateAction<boolean>>;
   timerMode: 'pomodoro' | 'shortBreak' | 'longBreak';
-  onTimerEnd: () => void; // Callback to notify Dashboard when a timer phase ends
-  resetToDuration: number; // The default duration to reset the timer to (e.g., POMODORO_DURATION)
-  currentTaskName: string; // Name of the currently selected task
+  onTimerEnd: () => void; 
+  resetToDuration: number; 
+  currentTaskName: string; 
 }
 
 const Timer: React.FC<TimerProps> = ({

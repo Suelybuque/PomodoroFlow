@@ -1,9 +1,9 @@
-// FatigueRecommendations.tsx
+
 import React from 'react';
 import './css/FatigueRecommendations.css';
 
 interface FatigueRecommendationsProps {
-  ruleCode: 'long-session-over-2-hours' | 'skipped-3-breaks' | 'pomodoro-cycle'; // add more as needed
+  ruleCode: 'long-session-over-2-hours' | 'skipped-3-breaks' | 'pomodoro-cycle'; 
 }
 
 const fatigueTips: Record<FatigueRecommendationsProps['ruleCode'], { message: string; tips: string[] }> = {
@@ -43,7 +43,7 @@ const FatigueRecommendations: React.FC<FatigueRecommendationsProps> = ({ ruleCod
   return (
     <div className="fatigue-recommendations">
       <p>{content.message}</p>
-      <ul>
+      <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
         {content.tips.map((tip, index) => (
           <li key={index}>{tip}</li>
         ))}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom'; // Using NavLink for active styling
+import { NavLink } from 'react-router-dom';
 import './css/Sidebar.css';
 
 

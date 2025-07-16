@@ -15,8 +15,8 @@ interface TaskListProps {
   selectedTaskId: string | null;
   onSelectTask: (id: string) => void;
   onToggleStatus: (id: string) => void;
-  onDeleteTask: (id: string) => void; // <--- NEW PROP
-  onEditTask: (task: Task) => void; // <--- NEW PROP
+  onDeleteTask: (id: string) => void; 
+  onEditTask: (task: Task) => void; 
 }
 
 export default class TaskList extends React.Component<TaskListProps> {
@@ -34,10 +34,10 @@ export default class TaskList extends React.Component<TaskListProps> {
             key={task.id}
             task={task}
             isSelected={selectedTaskId === task.id}
-            onSelect={onSelectTask} // Pass the function directly
-            onToggleStatus={onToggleStatus} // Pass the function directly
-            onDeleteTask={onDeleteTask} // <--- Pass the new prop
-            onEditTask={onEditTask}     // <--- Pass the new prop
+            onSelect={onSelectTask} 
+            onToggleStatus={onToggleStatus} 
+            onDeleteTask={onDeleteTask} 
+            onEditTask={onEditTask}     
           />
         ))}
       </div>

@@ -1,11 +1,7 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom'; // Assuming react-router-dom for navigation
+import { Link, useLocation } from 'react-router-dom'; 
 import './css/Navbar.css';
-//import { ReactComponent as PomodoroProLogo } from './react.svg'; // Assuming an SVG logo
 
-//interface NavbarProps {
-  // No specific props needed for now based on the design
-//}
 
 const Navbar: React.FC = () => {
 

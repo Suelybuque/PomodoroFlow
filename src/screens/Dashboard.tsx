@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-//* eslint-disable react-hooks/exhaustive-deps */
-//* eslint-disable @typescript-eslint/no-unused-vars */ // Keep this for other potential unused variables
 import React, { useEffect, useState, useCallback } from 'react';
 import Card from './components/Card';
 import Button from './components/Button';
@@ -58,13 +56,6 @@ const Dashboard: React.FC = () => {
   const [isBreakCompleteModalOpen, setIsBreakCompleteModalOpen] = useState(false);
   const [fatigueRule, setFatigueRule] = useState<null | 'pomodoro-cycle' | 'long-session-over-2-hours'>(null);
   const [isFatigueModalOpen, setIsFatigueModalOpen] = useState(false);
-
-  // Added eslint-disable to suppress unused variable errors for deployment
-  // A more robust solution would involve implementing the delete confirmation logic fully.
-
- // const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
-  
- // const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
 
   useOverworkEngine({
     pomodorosDoneInCycle,
@@ -226,10 +217,9 @@ const Dashboard: React.FC = () => {
                   setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
                 }}
                 onDeleteTask={(taskId) => {
-                  // setTaskToDeleteId(taskId); // Removed for now to avoid unused var error
-                  // setIsConfirmDeleteModalOpen(true); // Removed for now to avoid unused var error
-                  console.log(`Delete task requested for ID: ${taskId}`); // Log instead
-                  // In a real app, you'd show a confirmation modal here and then delete.
+              
+                  console.log(`Delete task requested for ID: ${taskId}`); 
+                 
                 }}
                 onEditTask={(task) => {
                   setEditingTask(task);
@@ -275,7 +265,6 @@ const Dashboard: React.FC = () => {
               setTimerMode('pomodoro');
               setSecondsLeft(POMODORO_DURATION);
               setIsRunning(false);
-              console.log('Dashboard: Skip Break clicked (logic removed).'); // Log instead
             }}>
               Skip Break
             </Button>

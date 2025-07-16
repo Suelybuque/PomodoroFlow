@@ -6,27 +6,23 @@ interface UseOverworkEngineProps {
   pomodorosDoneInCycle: number;
   isRunning: boolean;
   timerMode: 'pomodoro' | 'shortBreak' | 'longBreak';
-  // breakSkippedFlag and onBreakSkippedProcessed are removed as they are no longer needed
   onFatigueDetected: (
     ruleCode: 'pomodoro-cycle' | 'long-session-over-2-hours'
-  ) => void; // Removed 'skipped-3-breaks' from possible rule codes
+  ) => void; 
 }
 
-// Assuming POMODOROS_BEFORE_LONG_BREAK is 4, as is common in Pomodoro Technique
 const POMODOROS_BEFORE_LONG_BREAK = 4;
 
 export function useOverworkEngine({
   pomodorosDoneInCycle,
   isRunning,
   timerMode,
-  // breakSkippedFlag and onBreakSkippedProcessed are removed from destructuring
   onFatigueDetected,
 }: UseOverworkEngineProps) {
   const [continuousFocusSeconds, setContinuousFocusSeconds] = useState(0);
-  // consecutiveSkippedBreaks state is removed
   const lastPomodoroCycleNotified = useRef(0);
 
-  // ⏱ Track continuous Pomodoro focus time
+  // Track continuous Pomodoro focus time
   useEffect(() => {
     if (timerMode === 'pomodoro' && isRunning) {
       const interval = setInterval(() => {
@@ -39,7 +35,7 @@ export function useOverworkEngine({
     }
   }, [timerMode, isRunning]);
 
-  // ⚠️ Long session fatigue (2h = 7200s)
+  //  Long session fatigue (2h = 7200s)
   useEffect(() => {
     if (continuousFocusSeconds >= 7200) {
       onFatigueDetected('long-session-over-2-hours');
@@ -55,9 +51,9 @@ export function useOverworkEngine({
     }
   }, [continuousFocusSeconds, onFatigueDetected]);
 
-  // 🚫 Track skipped breaks - This useEffect block has been removed as requested.
+  
 
-  // 🔁 Pomodoro cycle fatigue
+  //  Pomodoro cycle fatigue
   useEffect(() => {
     if (
       pomodorosDoneInCycle > 0 &&

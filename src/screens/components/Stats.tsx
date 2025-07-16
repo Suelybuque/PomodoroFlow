@@ -1,5 +1,5 @@
 import React from 'react';
-import Card from './Card'; // Assuming Card component is available
+import Card from './Card'; 
 
 interface Task {
   id: string;
@@ -13,7 +13,7 @@ interface Task {
 interface StatsProps {
   tasks: Task[];
   pomodorosDoneInCycle: number;
-  pomodoroDurationInMinutes: number; // Value in minutes (e.g., 25)
+  pomodoroDurationInMinutes: number;
 }
 
 const Stats: React.FC<StatsProps> = ({ tasks, pomodorosDoneInCycle, pomodoroDurationInMinutes }) => {

@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import Card from './components/Card';
-import Chart from './components/Chart'; // Reusable Chart component
-import Footer from './components/Footer'; // Assuming Footer is a component now
+import Chart from './components/Chart'; 
+import Footer from './components/Footer'; 
 import './css/Analytics.css';
 import { supabase } from './lib/supabaseClient';
 
@@ -32,7 +32,7 @@ interface WeeklyFocusDataPoint {
   focus: number; // in minutes
   shortBreak: number;
   longBreak: number;
-  meetings: number; // Placeholder, as no data source for this yet
+  meetings: number; 
 }
 
 interface FocusTimeByCategoryDataPoint {
@@ -40,7 +40,7 @@ interface FocusTimeByCategoryDataPoint {
   time: number; // in minutes
 }
 
-// Constant for Pomodoro duration in minutes (assuming 25 minutes per pomodoro)
+// Constant for Pomodoro duration in minutes 
 const POMODORO_DURATION_IN_MINUTES = 25;
 
 const Analytics: React.FC = () => {
@@ -96,36 +96,27 @@ const Analytics: React.FC = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Removed unused 'yesterday' variable and related calculations
-      // const yesterday = new Date(today);
-      // yesterday.setDate(today.getDate() - 1);
-      // yesterday.setHours(0, 0, 0, 0);
+  
 
       const todaySessions = sessions.filter((session: PomodoroSession) => { // Explicitly type session to use PomodoroSession interface
         const sessionDate = new Date(session.created_at);
         return sessionDate >= today && session.session_type === 'pomodoro';
       });
-      // Removed unused 'yesterdaySessions' variable
-      // const yesterdaySessions = sessions.filter(session => { ... });
-
+     
       setPomodorosCompletedToday(todaySessions.length);
       setPomodorosTodayValue(todaySessions.length);
 
       const completedTasksToday = fetchedTasks.filter(task => new Date(task.created_at).setHours(0,0,0,0) === today.getTime() && task.status === 'completed');
-      // Removed unused 'completedTasksYesterday' variable
-      // const completedTasksYesterday = fetchedTasks.filter(task => { ... });
+     
       setTasksCompletedCount(fetchedTasks.filter(task => task.status === 'completed').length);
       setTasksCompletedTodayValue(completedTasksToday.length);
 
-      // Removed unused 'allFocusSessions' variable
-      // const allFocusSessions = sessions.filter(session => session.session_type === 'pomodoro');
+     
       const totalFocusTimeSumToday = todaySessions.reduce((sum, session) => sum + session.duration, 0);
-      // Removed unused 'totalFocusTimeSumYesterday' variable
-      // const totalFocusTimeSumYesterday = yesterdaySessions.reduce((sum, session) => sum + session.duration, 0);
+ 
 
       const avgToday = todaySessions.length > 0 ? totalFocusTimeSumToday / todaySessions.length : 0;
-      // Removed unused 'avgYesterday' variable
-      // const avgYesterday = yesterdaySessions.length > 0 ? totalFocusTimeSumYesterday / yesterdaySessions.length : 0;
+     
 
       setAverageFocusTime(avgToday);
       setAverageFocusTimeTodayValue(avgToday);
@@ -263,6 +254,45 @@ const Analytics: React.FC = () => {
     return <p className={`summary-change ${colorClass}`}>{`${sign}${value}${unit} today`}</p>;
   };
 
+const generateInsights = () => {
+  const insights: string[] = [];
+
+  // ✅ Insight 1: Long Focus
+  if (averageFocusTime > 90) {
+    insights.push("🧠 You've been super focused today! Time for a long break to recharge and reset. 🌿");
+  }
+
+  // ✅ Insight 2: Low Task Completion
+  if (tasksCompletedTodayValue !== null && tasksCompletedTodayValue < 1) {
+    insights.push("📋 No tasks completed yet today. Try finishing just one to build momentum! 💡");
+  }
+
+  // ✅ Insight 3: Break Neglect
+  const totalShortBreaks = weeklyFocusData.reduce((sum, d) => sum + d.shortBreak, 0);
+  const totalPomodoros = weeklyFocusData.reduce((sum, d) => sum + d.focus, 0) / POMODORO_DURATION_IN_MINUTES;
+
+  if (totalShortBreaks < totalPomodoros * 0.33) {
+    insights.push("⏸️ Break alert! You've been skipping short breaks — even 5 minutes can boost clarity. ☕");
+  }
+
+  // ✅ Insight 4: Healthy Productivity
+  if (
+    averageFocusTime >= 25 &&
+    averageFocusTime <= 35 &&
+    tasksCompletedTodayValue &&
+    tasksCompletedTodayValue > 0
+  ) {
+    insights.push("✅ You're balancing focus and task completion like a pro. Keep up the great work! 🔥");
+  }
+
+  // ✅ Insight 5: Burnout Risk
+  if (currentStreak >= 5 && pomodorosCompletedToday >= 6) {
+    insights.push("⚠️ You're on fire with a strong streak, but don’t forget to rest. A recharge day could do wonders. 🛌");
+  }
+
+  return insights;
+};
+
   return (
     <div className="analytics-layout">
       <Navbar />
@@ -357,16 +387,19 @@ const Analytics: React.FC = () => {
         <section className="analytics-insights">
           <div className="left-panel">
             <Card className="highly-focused-alert">
-              <i className="fas fa-bell"></i>
-              <h3>You've been highly focused! Consider a longer break soon.</h3>
-              <p>Consider these suggestions:</p>
-              <ul>
-                <li>Take a 15-30 minute break away from your desk.</li>
-                <li>Go for a short walk or do some light stretching.</li>
-                <li>Hydrate and give your eyes a rest.</li>
-                <li>Plan your next session to avoid burnout.</li>
-              </ul>
-            </Card>
+  <i className="fas fa-bell"></i>
+  <h3>Today's Focus Insights</h3>
+  <p>Based on your Pomodoro sessions:</p>
+  <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
+    {generateInsights().length > 0 ? (
+      generateInsights().map((insight, index) => (
+        <li key={index}>{insight}</li>
+      ))
+    ) : (
+      <li>You're doing great! Keep the momentum going. 💪🏽</li>
+    )}
+  </ul>
+</Card>
 
             <Card className="productivity-streaks">
               <h3>Productivity Streaks</h3>
