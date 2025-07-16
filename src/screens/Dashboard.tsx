@@ -16,6 +16,9 @@ import FatigueRecommendations from './components/FatigueRecommendations';
 import './css/Dashboard.css';
 import { supabase } from './lib/supabaseClient';
 import { useOverworkEngine } from './components/useOverworkEngine';
+import COFFEE_ICON_PATH from './components/images/coffee.png';
+import TIMER_ICON_PATH from './components/images/timer2.png'
+
 
 import {
   POMODORO_DURATION,
@@ -24,9 +27,8 @@ import {
   POMODOROS_BEFORE_LONG_BREAK,
   TASK_CATEGORIES,
   POMODORO_GOALS,
-  TIMER_ICON_PATH,
-  COFFEE_ICON_PATH,
 } from './components/constants';
+
 
 interface Task {
   id: string;

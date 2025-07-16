@@ -19,6 +19,3 @@ export const POMODORO_GOALS = [
   { value: '4', label: '4 Pomodoros (100 min)' },
 ];
 
-// Image paths
-export const TIMER_ICON_PATH = "/images/timer-icon.png";
-export const COFFEE_ICON_PATH = "/images/coffee-icon.png";
