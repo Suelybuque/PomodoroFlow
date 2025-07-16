@@ -26,6 +26,7 @@ import {
   TASK_CATEGORIES,
   POMODORO_GOALS,
 } from './components/constants';
+import { useNavigate } from 'react-router-dom';
 
 
 interface Task {
@@ -38,6 +39,7 @@ interface Task {
 }
 
 const Dashboard: React.FC = () => {
+   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('active');
@@ -81,6 +83,16 @@ const Dashboard: React.FC = () => {
     }
   };
   
+// 🚀 Session check
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (!data.session || error) {
+        navigate('/'); // 🚪 Redirect to login if not logged in
+      }
+    };
+    checkSession();
+  }, [navigate]);
 
 
   useOverworkEngine({

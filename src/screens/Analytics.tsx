@@ -1,21 +1,12 @@
-/* eslint-disable prefer-const */
-//* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import Card from './components/Card';
-import Chart from './components/Chart'; 
-import Footer from './components/Footer'; 
+import Chart from './components/Chart';
+import Footer from './components/Footer';
 import './css/Analytics.css';
 import { supabase } from './lib/supabaseClient';
 
-// Define interfaces for fetched data
-interface PomodoroSession {
-  id: string;
-  created_at: string;
-  task_id: string | null;
-  duration: number; // in minutes
-  session_type: 'pomodoro' | 'shortBreak' | 'longBreak';
-}
 
 interface Task {
   id: string;
@@ -24,26 +15,27 @@ interface Task {
   pomodoroGoal: number;
   pomodorosCompleted: number;
   status: 'active' | 'completed';
+  created_at: string;
+  user_id: string;
 }
 
-// Data structures for charts
 interface WeeklyFocusDataPoint {
   day: string;
-  focus: number; // in minutes
+  focus: number;
   shortBreak: number;
   longBreak: number;
-  meetings: number; 
+  meetings: number;
 }
 
 interface FocusTimeByCategoryDataPoint {
   category: string;
-  time: number; // in minutes
+  time: number;
 }
 
-// Constant for Pomodoro duration in minutes 
 const POMODORO_DURATION_IN_MINUTES = 25;
 
 const Analytics: React.FC = () => {
+  const [, setUserId] = useState<string | null>(null);
   const [pomodorosCompletedToday, setPomodorosCompletedToday] = useState(0);
   const [tasksCompletedCount, setTasksCompletedCount] = useState(0);
   const [averageFocusTime, setAverageFocusTime] = useState(0);
@@ -55,194 +47,147 @@ const Analytics: React.FC = () => {
     pending: 0,
     overdue: 0,
   });
-  const [tasks, setTasks] = useState<Task[]>([]); // State to store all tasks for breakdown calculations
+  const [tasks, setTasks] = useState<Task[]>([]);
 
-  // States for dynamic "today's value" indicators
   const [pomodorosTodayValue, setPomodorosTodayValue] = useState<number | null>(null);
   const [tasksCompletedTodayValue, setTasksCompletedTodayValue] = useState<number | null>(null);
   const [averageFocusTimeTodayValue, setAverageFocusTimeTodayValue] = useState<number | null>(null);
-
-  // States for productivity streaks
   const [currentStreak, setCurrentStreak] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
 
   useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      // 1. Fetch Pomodoro Sessions
-      const { data: sessions, error: sessionsError } = await supabase
-        .from('pomodoro_sessions')
-        .select('*');
+    const getSessionAndFetch = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (sessionsError) {
-        console.error('Error fetching pomodoro sessions:', sessionsError.message);
-        return;
+      if (session?.user?.id) {
+        setUserId(session.user.id);
+        fetchAnalyticsData(session.user.id);
       }
-      console.log('Fetched Pomodoro Sessions:', sessions);
-
-      // 2. Fetch Tasks
-      const { data: fetchedTasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*');
-
-      if (tasksError) {
-        console.error('Error fetching tasks:', tasksError.message);
-        return;
-      }
-      setTasks(fetchedTasks as Task[]);
-      console.log('Fetched Tasks:', fetchedTasks);
-
-      // --- Data Processing ---
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-  
-
-      const todaySessions = sessions.filter((session: PomodoroSession) => { // Explicitly type session to use PomodoroSession interface
-        const sessionDate = new Date(session.created_at);
-        return sessionDate >= today && session.session_type === 'pomodoro';
-      });
-     
-      setPomodorosCompletedToday(todaySessions.length);
-      setPomodorosTodayValue(todaySessions.length);
-
-      const completedTasksToday = fetchedTasks.filter(task => new Date(task.created_at).setHours(0,0,0,0) === today.getTime() && task.status === 'completed');
-     
-      setTasksCompletedCount(fetchedTasks.filter(task => task.status === 'completed').length);
-      setTasksCompletedTodayValue(completedTasksToday.length);
-
-     
-      const totalFocusTimeSumToday = todaySessions.reduce((sum, session) => sum + session.duration, 0);
- 
-
-      const avgToday = todaySessions.length > 0 ? totalFocusTimeSumToday / todaySessions.length : 0;
-     
-
-      setAverageFocusTime(avgToday);
-      setAverageFocusTimeTodayValue(avgToday);
-
-      const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const weekDataMap = new Map<string, { focus: number; shortBreak: number; longBreak: number; meetings: number }>();
-      daysOfWeek.forEach(day => weekDataMap.set(day, { focus: 0, shortBreak: 0, longBreak: 0, meetings: 0 }));
-
-      sessions.forEach(session => {
-        const sessionDate = new Date(session.created_at);
-        const dayName = daysOfWeek[sessionDate.getDay()];
-        const currentDayData = weekDataMap.get(dayName)!;
-
-        if (session.session_type === 'pomodoro') {
-          currentDayData.focus += session.duration;
-        } else if (session.session_type === 'shortBreak') {
-          currentDayData.shortBreak += session.duration;
-        } else if (session.session_type === 'longBreak') {
-          currentDayData.longBreak += session.duration;
-        }
-        weekDataMap.set(dayName, currentDayData);
-      });
-
-      const processedWeeklyFocusData = daysOfWeek.map(day => ({
-        day: day,
-        focus: weekDataMap.get(day)!.focus,
-        shortBreak: weekDataMap.get(day)!.shortBreak,
-        longBreak: weekDataMap.get(day)!.longBreak,
-        meetings: weekDataMap.get(day)!.meetings,
-      }));
-      setWeeklyFocusData(processedWeeklyFocusData);
-
-      const categoryTimeMap = new Map<string, number>();
-
-      fetchedTasks.forEach(task => {
-        if (task.status === 'completed') {
-          const currentCategoryTime = categoryTimeMap.get(task.category) || 0;
-          categoryTimeMap.set(task.category, currentCategoryTime + (task.pomodorosCompleted * POMODORO_DURATION_IN_MINUTES));
-        }
-      });
-      const processedFocusTimeByCategoryData = Array.from(categoryTimeMap.entries()).map(([category, time]) => ({
-        category,
-        time,
-      }));
-      setFocusTimeByCategoryData(processedFocusTimeByCategoryData);
-      console.log('Analytics: Processed Focus Time by Category Data (to Chart):', processedFocusTimeByCategoryData);
-
-
-      const statusCounts = {
-        completed: fetchedTasks.filter(task => task.status === 'completed').length,
-        inProgress: fetchedTasks.filter(task => task.status === 'active' && task.pomodorosCompleted > 0).length,
-        pending: fetchedTasks.filter(task => task.status === 'active' && task.pomodorosCompleted === 0).length,
-        overdue: 0,
-      };
-      setTaskStatusBreakdown(statusCounts);
-
-      const pomodoroDates = new Set<string>();
-      sessions.forEach(session => {
-        if (session.session_type === 'pomodoro') {
-          const date = new Date(session.created_at);
-          pomodoroDates.add(date.toISOString().split('T')[0]);
-        }
-      });
-
-      const sortedDates = Array.from(pomodoroDates).sort();
-
-      let currentStreakCount = 0;
-      let longestStreakCount = 0;
-      let tempStreak = 0;
-
-      const todayIso = today.toISOString().split('T')[0];
-      // Recalculate yesterdayIso here for streak logic, as the variable itself was removed
-      const yesterdayIso = new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-      if (pomodoroDates.has(todayIso)) {
-        tempStreak = 1;
-        currentStreakCount = 1;
-      } else if (pomodoroDates.has(yesterdayIso)) {
-        currentStreakCount = 0;
-      }
-
-      for (let i = sortedDates.length - 1; i >= 0; i--) {
-        const currentDate = new Date(sortedDates[i]);
-        const prevDate = new Date(currentDate);
-        prevDate.setDate(currentDate.getDate() - 1);
-
-        const prevDateIso = prevDate.toISOString().split('T')[0];
-
-        if (i > 0 && sortedDates[i - 1] === prevDateIso) {
-          tempStreak++;
-        } else {
-          longestStreakCount = Math.max(longestStreakCount, tempStreak);
-          tempStreak = 1;
-        }
-
-        if (sortedDates[i] === todayIso) {
-            currentStreakCount = Math.max(currentStreakCount, tempStreak);
-        } else if (sortedDates[i] === yesterdayIso && !pomodoroDates.has(todayIso)) {
-            currentStreakCount = 0;
-        }
-      }
-      longestStreakCount = Math.max(longestStreakCount, tempStreak);
-
-      if (!pomodoroDates.has(todayIso) && !pomodoroDates.has(yesterdayIso)) {
-          currentStreakCount = 0;
-      } else if (!pomodoroDates.has(todayIso) && pomodoroDates.has(yesterdayIso)) {
-          currentStreakCount = 0;
-      } else if (pomodoroDates.has(todayIso)) {
-          let tempCurrentStreak = 0;
-          let checkDate = new Date(today);
-          while (pomodoroDates.has(checkDate.toISOString().split('T')[0])) {
-              tempCurrentStreak++;
-              checkDate.setDate(checkDate.getDate() - 1);
-          }
-          currentStreakCount = tempCurrentStreak;
-      }
-
-
-      setCurrentStreak(currentStreakCount);
-      setLongestStreak(longestStreakCount);
     };
 
-    fetchAnalyticsData();
+    getSessionAndFetch();
   }, []);
 
-  const maxWeeklyCombinedTime = Math.max(...weeklyFocusData.map(d => d.focus + d.shortBreak + d.longBreak + d.meetings), 1);
+  const fetchAnalyticsData = async (userId: string) => {
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('pomodoro_sessions')
+      .select('*')
+      .eq('user_id', userId);
+
+    const { data: fetchedTasks, error: tasksError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (sessionsError || tasksError) {
+      console.error('Error:', sessionsError?.message || tasksError?.message);
+      return;
+    }
+
+    setTasks(fetchedTasks as Task[]);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todaySessions = sessions.filter(
+      (s) => new Date(s.created_at) >= today && s.session_type === 'pomodoro'
+    );
+
+    setPomodorosCompletedToday(todaySessions.length);
+    setPomodorosTodayValue(todaySessions.length);
+
+    const completedTasksToday = fetchedTasks.filter(
+      (t) => new Date(t.created_at).setHours(0, 0, 0, 0) === today.getTime() && t.status === 'completed'
+    );
+
+    setTasksCompletedCount(fetchedTasks.filter(t => t.status === 'completed').length);
+    setTasksCompletedTodayValue(completedTasksToday.length);
+
+    const totalFocusTimeSumToday = todaySessions.reduce((sum, s) => sum + s.duration, 0);
+    const avgToday = todaySessions.length > 0 ? totalFocusTimeSumToday / todaySessions.length : 0;
+
+    setAverageFocusTime(avgToday);
+    setAverageFocusTimeTodayValue(avgToday);
+
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weekDataMap = new Map<string, WeeklyFocusDataPoint>();
+    daysOfWeek.forEach(day => weekDataMap.set(day, { day, focus: 0, shortBreak: 0, longBreak: 0, meetings: 0 }));
+
+    sessions.forEach(session => {
+      const sessionDate = new Date(session.created_at);
+      const day = daysOfWeek[sessionDate.getDay()];
+      const data = weekDataMap.get(day)!;
+
+      if (session.session_type === 'pomodoro') data.focus += session.duration;
+      if (session.session_type === 'shortBreak') data.shortBreak += session.duration;
+      if (session.session_type === 'longBreak') data.longBreak += session.duration;
+    });
+
+    setWeeklyFocusData(Array.from(weekDataMap.values()));
+
+    const categoryTimeMap = new Map<string, number>();
+    fetchedTasks.forEach(t => {
+      if (t.status === 'completed') {
+        categoryTimeMap.set(
+          t.category,
+          (categoryTimeMap.get(t.category) || 0) + t.pomodorosCompleted * POMODORO_DURATION_IN_MINUTES
+        );
+      }
+    });
+
+    const categoryData: FocusTimeByCategoryDataPoint[] = Array.from(categoryTimeMap.entries()).map(([category, time]) => ({
+      category,
+      time,
+    }));
+    setFocusTimeByCategoryData(categoryData);
+
+    setTaskStatusBreakdown({
+      completed: fetchedTasks.filter(t => t.status === 'completed').length,
+      inProgress: fetchedTasks.filter(t => t.status === 'active' && t.pomodorosCompleted > 0).length,
+      pending: fetchedTasks.filter(t => t.status === 'active' && t.pomodorosCompleted === 0).length,
+      overdue: 0,
+    });
+
+    const pomodoroDates = new Set<string>();
+    sessions.forEach(s => {
+      if (s.session_type === 'pomodoro') {
+        const iso = new Date(s.created_at).toISOString().split('T')[0];
+        pomodoroDates.add(iso);
+      }
+    });
+
+    const sortedDates = Array.from(pomodoroDates).sort();
+    const todayIso = today.toISOString().split('T')[0];
+    const yesterdayIso = new Date(today.getTime() - 86400000).toISOString().split('T')[0];
+
+    let tempStreak = 0;
+    let maxStreak = 0;
+
+    for (let i = sortedDates.length - 1; i >= 0; i--) {
+      const date = new Date(sortedDates[i]);
+      const prevDate = new Date(date);
+      prevDate.setDate(date.getDate() - 1);
+      const prevIso = prevDate.toISOString().split('T')[0];
+
+      if (i > 0 && sortedDates[i - 1] === prevIso) tempStreak++;
+      else {
+        maxStreak = Math.max(maxStreak, tempStreak);
+        tempStreak = 1;
+      }
+    }
+
+    if (pomodoroDates.has(todayIso)) {
+      setCurrentStreak(tempStreak);
+    } else if (pomodoroDates.has(yesterdayIso)) {
+      setCurrentStreak(0);
+    }
+
+    setLongestStreak(Math.max(maxStreak, tempStreak));
+  };
+
+  const maxWeeklyCombinedTime = Math.max(...weeklyFocusData.map(d => d.focus + d.shortBreak + d.longBreak), 1);
   const maxCategoryTime = Math.max(...focusTimeByCategoryData.map(d => d.time), 1);
   const totalTasks = tasks.length || 1;
 

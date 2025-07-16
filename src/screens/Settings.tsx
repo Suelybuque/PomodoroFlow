@@ -7,7 +7,7 @@ import Button from './components/Button';
 import './css/Settings.css';
 
 const Settings: React.FC = () => {
-  // State for timer settings
+  
   const [pomodoroDuration, setPomodoroDuration] = useState(25);
   const [shortBreakDuration, setShortBreakDuration] = useState(5);
   const [longBreakDuration, setLongBreakDuration] = useState(15);

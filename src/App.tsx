@@ -1,19 +1,43 @@
+// App.tsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './screens/Dashboard';
 import Settings from './screens/Settings';
 import Analytics from './screens/Analytics';
-import './App.css'; // Global styles
-//import '@fortawesome/fontawesome-free/css/all.min.css'; // For Font Awesome icons
+import Signup from './screens/components/auth/SignUp';
+import Login from './screens/components/auth/Login';
+import ProtectedRoute from './screens/ProtectedRoute';
+import './App.css';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/analytics" element={<Analytics />} />
-        {/* Nested routes for settings, or just render the main settings page */}
-        <Route path="/settings/*" element={<Settings />} /> {/* Using * for nested paths like /settings/timer */}
-        {/* Add a catch-all route for 404 or redirect */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <Analytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/*"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/" element={<Login />} />
         <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>
     </Router>
