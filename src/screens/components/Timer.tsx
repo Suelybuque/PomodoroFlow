@@ -1,62 +1,39 @@
-import React, { useEffect, useCallback } from 'react';
-import Button from './Button'; 
+// Timer.tsx
+import React, { useCallback } from 'react';
+import { useTimerContext } from '../TimerContext'; // Import useTimerContext
+import Button from './Button';
 
 interface TimerProps {
-  secondsLeft: number;
-  setSecondsLeft: React.Dispatch<React.SetStateAction<number>>;
-  isRunning: boolean;
-  setIsRunning: React.Dispatch<React.SetStateAction<boolean>>;
-  timerMode: 'pomodoro' | 'shortBreak' | 'longBreak';
-  onTimerEnd: () => void; 
-  resetToDuration: number; 
-  currentTaskName: string; 
+  resetToDuration: number; // Still needed for the reset button
+  currentTaskName: string;
 }
 
 const Timer: React.FC<TimerProps> = ({
-  secondsLeft,
-  setSecondsLeft,
-  isRunning,
-  setIsRunning,
-  timerMode,
-  onTimerEnd,
   resetToDuration,
   currentTaskName,
 }) => {
-  // Timer countdown effect
-  useEffect(() => {
-    if (!isRunning) return;
+  // Get all necessary state and setters from the context
+  const {
+    secondsLeft,
+    setSecondsLeft,
+    isRunning,
+    setIsRunning,
+    timerMode,
+    setTimerMode,
+  } = useTimerContext(); // Use the context hook
 
-    if (secondsLeft === 0) {
-      setIsRunning(false); // Pause timer when a phase ends
-      onTimerEnd(); // Notify Dashboard that a phase has ended
-      return;
-    }
-
-    const timerId = setInterval(() => {
-      setSecondsLeft((time) => time - 1);
-    }, 1000);
-
-    return () => clearInterval(timerId); // Clean up interval
-  }, [isRunning, secondsLeft, onTimerEnd, setSecondsLeft, setIsRunning]);
-
-  // Format seconds to mm:ss
   const formatTime = (secs: number) => {
     const minutes = Math.floor(secs / 60);
     const seconds = secs % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Helper to get current timer label
   const getTimerLabel = useCallback(() => {
     switch (timerMode) {
-      case 'pomodoro':
-        return 'Focus Time';
-      case 'shortBreak':
-        return 'Short Break';
-      case 'longBreak':
-        return 'Long Break';
-      default:
-        return 'Timer';
+      case 'pomodoro': return 'Focus Time';
+      case 'shortBreak': return 'Short Break';
+      case 'longBreak': return 'Long Break';
+      default: return 'Timer';
     }
   }, [timerMode]);
 
@@ -74,15 +51,16 @@ const Timer: React.FC<TimerProps> = ({
           variant="secondary"
           onClick={() => {
             setIsRunning(false);
-            setSecondsLeft(resetToDuration); // Reset to the initial Pomodoro duration
+            setSecondsLeft(resetToDuration); // Reset to the initial duration of the current mode
+            setTimerMode('pomodoro'); // Always reset to pomodoro mode on manual reset
           }}
         >
           Reset
         </Button>
       </div>
-      <div className="selected-task-info" style={{ marginTop: 10 }}>
-        <strong>Current Task: </strong>{' '}
-        {currentTaskName}
+      <div className="current-task-display">
+        <span className="current-task-label">Current Task:</span>
+        <span className="current-task-name">{currentTaskName}</span>
       </div>
     </>
   );

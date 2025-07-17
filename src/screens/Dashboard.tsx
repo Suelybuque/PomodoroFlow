@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState, useCallback } from 'react';
+
+import React, { useEffect, useState, useRef } from 'react';
 import Card from './components/Card';
 import Button from './components/Button';
 import Modal from './components/Modal';
@@ -14,20 +14,15 @@ import FatigueRecommendations from './components/FatigueRecommendations';
 import './css/Dashboard.css';
 import { supabase } from './lib/supabaseClient';
 import { useOverworkEngine } from './components/useOverworkEngine';
-import COFFEE_ICON_PATH from './components/images/coffee.png';
-import TIMER_ICON_PATH from './components/images/timer2.png'
-
-
+import { useTimerContext } from './TimerContext'; 
+import  TIMER_ICON_PATH from './components/images/timer2.png'
+import COFFEE_ICON_PATH from './components/images/coffee.png'
 import {
   POMODORO_DURATION,
-  SHORT_BREAK_DURATION,
-  LONG_BREAK_DURATION,
   POMODOROS_BEFORE_LONG_BREAK,
   TASK_CATEGORIES,
   POMODORO_GOALS,
 } from './components/constants';
-import { useNavigate } from 'react-router-dom';
-
 
 interface Task {
   id: string;
@@ -39,15 +34,20 @@ interface Task {
 }
 
 const Dashboard: React.FC = () => {
-   const navigate = useNavigate();
+ 
+  const {
+    isRunning,
+    setIsRunning,
+    timerMode,
+    setTimerMode,
+    setSecondsLeft,
+    pomodorosDoneInCycle,
+   // setPomodorosDoneInCycle, 
+  } = useTimerContext();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('active');
-
-  const [secondsLeft, setSecondsLeft] = useState(POMODORO_DURATION);
-  const [isRunning, setIsRunning] = useState(false);
-  const [pomodorosDoneInCycle, setPomodorosDoneInCycle] = useState(0);
-  const [timerMode, setTimerMode] = useState<'pomodoro' | 'shortBreak' | 'longBreak'>('pomodoro');
 
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
@@ -59,41 +59,10 @@ const Dashboard: React.FC = () => {
   const [fatigueRule, setFatigueRule] = useState<null | 'pomodoro-cycle' | 'long-session-over-2-hours'>(null);
   const [isFatigueModalOpen, setIsFatigueModalOpen] = useState(false);
 
-
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
   const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
 
- 
-  const handleDeleteConfirmed = async () => {
-    if (taskToDeleteId) {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskToDeleteId);
-
-      if (error) {
-        console.error('Error deleting task:', error.message);
-       
-      } else {
-        setTasks(prev => prev.filter(task => task.id !== taskToDeleteId));
-        console.log(`Task ${taskToDeleteId} deleted successfully.`);
-      }
-      setTaskToDeleteId(null);
-      setIsConfirmDeleteModalOpen(false);
-    }
-  };
-  
-// 🚀 Session check
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (!data.session || error) {
-        navigate('/'); // 🚪 Redirect to login if not logged in
-      }
-    };
-    checkSession();
-  }, [navigate]);
-
+  const lastPomodoroLoggedRef = useRef(0);
 
   useOverworkEngine({
     pomodorosDoneInCycle,
@@ -117,111 +86,199 @@ const Dashboard: React.FC = () => {
     fetchTasks();
   }, []);
 
-  const handleTimerEnd = useCallback(async () => {
-    if (timerMode === 'pomodoro') {
-      const nextPomodorosDoneInCycle = pomodorosDoneInCycle + 1;
-      setPomodorosDoneInCycle(nextPomodorosDoneInCycle);
-      await logPomodoroSession({ taskId: selectedTaskId, duration: POMODORO_DURATION / 60 });
+  useEffect(() => {
+    if (!isRunning && pomodorosDoneInCycle > lastPomodoroLoggedRef.current) {
+        console.log(`Dashboard: Pomodoro ${pomodorosDoneInCycle} ended, logging session.`);
+        logPomodoroSession({ taskId: selectedTaskId, duration: POMODORO_DURATION / 60 });
 
-      if (selectedTaskId) {
-        setTasks(prev => prev.map(task => {
-          if (task.id === selectedTaskId) {
-            const updatedPomodoros = task.pomodorosCompleted + 1;
-            const updatedStatus = updatedPomodoros >= task.pomodoroGoal ? 'completed' : task.status;
-            supabase.from('tasks').update({ pomodorosCompleted: updatedPomodoros, status: updatedStatus }).eq('id', selectedTaskId);
-            return { ...task, pomodorosCompleted: updatedPomodoros, status: updatedStatus };
-          }
-          return task;
-        }));
+        if (selectedTaskId) {
+            setTasks(prev => prev.map(task => {
+                if (task.id === selectedTaskId) {
+                    const updatedPomodoros = task.pomodorosCompleted + 1;
+                    const updatedStatus = updatedPomodoros >= task.pomodoroGoal ? 'completed' : task.status;
+
+                    supabase
+                        .from('tasks')
+                        .update({ pomodorosCompleted: updatedPomodoros, status: updatedStatus })
+                        .eq('id', selectedTaskId)
+                        .then(({ error }) => {
+                            if (error) console.error('Supabase update error after Pomodoro:', error.message);
+                        });
+
+                    return { ...task, pomodorosCompleted: updatedPomodoros, status: updatedStatus };
+                }
+                return task;
+            }));
+        }
+        lastPomodoroLoggedRef.current = pomodorosDoneInCycle; 
+        setIsBreakCompleteModalOpen(true); 
+    } else if (!isRunning && timerMode === 'pomodoro' && lastPomodoroLoggedRef.current === pomodorosDoneInCycle) {
+        setIsBreakCompleteModalOpen(true); 
+    }
+  }, [isRunning, timerMode, pomodorosDoneInCycle, selectedTaskId, setTasks]);
+
+
+  const handleSaveTask = async () => {
+    if (!newTaskName.trim()) return;
+
+    if (editingTask) {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({ name: newTaskName, category: newTaskCategory, pomodoroGoal: parseInt(newTaskPomodoroGoal) })
+        .eq('id', editingTask.id)
+        .select();
+
+      if (error) {
+        console.error('Update task error:', error.message);
+        return;
       }
 
-      if (nextPomodorosDoneInCycle % POMODOROS_BEFORE_LONG_BREAK === 0) {
-        setTimerMode('longBreak');
-        setSecondsLeft(LONG_BREAK_DURATION);
-      } else {
-        setTimerMode('shortBreak');
-        setSecondsLeft(SHORT_BREAK_DURATION);
+      if (data) {
+        setTasks((prev) =>
+          prev.map((task) => (task.id === editingTask.id ? (data[0] as Task) : task))
+        );
       }
-
-      setIsBreakCompleteModalOpen(true);
     } else {
-      setTimerMode('pomodoro');
-      setSecondsLeft(POMODORO_DURATION);
-      setIsBreakCompleteModalOpen(true);
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([
+          {
+            name: newTaskName,
+            category: newTaskCategory,
+            pomodoroGoal: parseInt(newTaskPomodoroGoal),
+            pomodorosCompleted: 0,
+            status: 'active',
+          },
+        ])
+        .select();
+
+      if (error) {
+        console.error('Insert error:', error.message);
+        return;
+      }
+
+      if (data) {
+        setTasks((prev) => [...prev, ...(data as Task[])]);
+      }
     }
-  }, [timerMode, pomodorosDoneInCycle, selectedTaskId]);
 
-const handleSaveTask = async () => {
-  if (!newTaskName.trim()) return;
+    setNewTaskName('');
+    setNewTaskCategory(TASK_CATEGORIES[0]?.value || 'work');
+    setNewTaskPomodoroGoal(POMODORO_GOALS[0]?.value || '1');
+    setEditingTask(null);
+    setIsAddTaskModalOpen(false);
+  };
 
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+  const handleDeleteConfirmed = async () => {
+    if (taskToDeleteId) {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskToDeleteId);
 
-  if (sessionError || !session?.user) {
-    console.error("No authenticated user found.");
-    return;
-  }
-
-  const user_id = session.user.id;
-
-  if (editingTask) {
-    const { data } = await supabase
-      .from('tasks')
-      .update({
-        name: newTaskName,
-        category: newTaskCategory,
-        pomodoroGoal: parseInt(newTaskPomodoroGoal),
-      })
-      .eq('id', editingTask.id)
-      .select();
-
-    if (data) {
-      setTasks(prev => prev.map(task => task.id === editingTask.id ? (data[0] as Task) : task));
+      if (error) {
+        console.error('Error deleting task:', error.message);
+      } else {
+        setTasks(prev => prev.filter(task => task.id !== taskToDeleteId));
+        console.log(`Task ${taskToDeleteId} deleted successfully.`);
+      }
+      setTaskToDeleteId(null);
+      setIsConfirmDeleteModalOpen(false);
     }
-  } else {
-    const { data, error } = await supabase
+  };
+
+  const handleToggleTaskStatus = async (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const newStatus = task.status === 'completed' ? 'active' : 'completed';
+
+    const { error } = await supabase
       .from('tasks')
-      .insert([
-        {
-          name: newTaskName,
-          category: newTaskCategory,
-          pomodoroGoal: parseInt(newTaskPomodoroGoal),
-          pomodorosCompleted: 0,
-          status: 'active',
-          user_id, // ✅ include user_id here
-        },
-      ])
-      .select();
+      .update({ status: newStatus })
+      .eq('id', taskId);
 
     if (error) {
-      console.error("Insert error:", error.message);
+      console.error('Update status error:', error.message);
       return;
     }
 
-    if (data) {
-      setTasks(prev => [...prev, ...(data as Task[])]);
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+    );
+
+    if (newStatus === 'completed' && selectedTaskId === taskId) {
+      setSelectedTaskId(null);
+      setIsRunning(false);
+      setSecondsLeft(POMODORO_DURATION);
+      setTimerMode('pomodoro');
     }
-  }
+  };
 
-  setNewTaskName('');
-  setNewTaskCategory(TASK_CATEGORIES[0]?.value || 'work');
-  setNewTaskPomodoroGoal(POMODORO_GOALS[0]?.value || '1');
-  setEditingTask(null);
-  setIsAddTaskModalOpen(false);
-};
+  const openDeleteConfirmModal = (taskId: string) => {
+    setTaskToDeleteId(taskId);
+    setIsConfirmDeleteModalOpen(true);
+  };
 
+  const cancelDelete = () => {
+    setTaskToDeleteId(null);
+    setIsConfirmDeleteModalOpen(false);
+  };
 
-  const getBreakCompleteModalTitle = () =>
-    timerMode === 'pomodoro' ? 'Time to Focus!' : 'Break Time!';
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setNewTaskName(task.name);
+    setNewTaskCategory(task.category);
+    setNewTaskPomodoroGoal(String(task.pomodoroGoal));
+    setIsAddTaskModalOpen(true);
+  };
 
-  const getBreakCompleteModalMessage = () =>
-    timerMode === 'pomodoro'
-      ? 'Break is over. Ready for your next Pomodoro session!'
-      : pomodorosDoneInCycle % POMODOROS_BEFORE_LONG_BREAK === 0
-        ? 'Great job! You’ve completed a Pomodoro cycle. Time for a long break.'
+  const openAddTaskModal = () => {
+    setEditingTask(null);
+    setNewTaskName('');
+    setNewTaskCategory(TASK_CATEGORIES[0]?.value || 'work');
+    setNewTaskPomodoroGoal(POMODORO_GOALS[0]?.value || '1');
+    setIsAddTaskModalOpen(true);
+  };
+
+  const handleSelectTask = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task && task.status === 'active') {
+        setSelectedTaskId(taskId);
+        setSecondsLeft(POMODORO_DURATION);
+        setIsRunning(false);
+        setTimerMode('pomodoro');
+    }
+  };
+
+  const filteredTasks = tasks.filter((task) => {
+    if (activeTab === 'all') return true;
+    return task.status === activeTab;
+  });
+
+  const getBreakCompleteModalTitle = () => {
+    if (timerMode === 'pomodoro') {
+      return 'Time to Focus!';
+    } else if (timerMode === 'shortBreak' || timerMode === 'longBreak') {
+      return 'Break Time!';
+    }
+    return 'Timer Finished';
+  };
+
+  const getBreakCompleteModalMessage = () => {
+    if (timerMode === 'pomodoro') {
+      return 'Break is over. Ready for your next Pomodoro session!';
+    } else if (timerMode === 'shortBreak' || timerMode === 'longBreak') {
+      return (pomodorosDoneInCycle % POMODOROS_BEFORE_LONG_BREAK === 0)
+        ? 'Great job! You\'ve completed a Pomodoro cycle. Time for a long break.'
         : 'Pomodoro completed! Time for a short break to recharge.';
+    }
+    return '';
+  };
+
+  const currentTaskName = selectedTaskId
+    ? tasks.find((task) => task.id === selectedTaskId)?.name ?? 'Task not found'
+    : 'None selected';
 
   return (
     <div className="dashboard-layout">
@@ -231,18 +288,8 @@ const handleSaveTask = async () => {
           <Card className="productive-space-card">
             <h2>Your Productive Space</h2>
             <Timer
-              secondsLeft={secondsLeft}
-              setSecondsLeft={setSecondsLeft}
-              isRunning={isRunning}
-              setIsRunning={setIsRunning}
-              timerMode={timerMode}
-              onTimerEnd={handleTimerEnd}
               resetToDuration={POMODORO_DURATION}
-              currentTaskName={
-                selectedTaskId
-                  ? tasks.find(task => task.id === selectedTaskId)?.name ?? 'Task not found'
-                  : 'None selected'
-              }
+              currentTaskName={currentTaskName}
             />
           </Card>
         </section>
@@ -253,57 +300,46 @@ const handleSaveTask = async () => {
             pomodorosDoneInCycle={pomodorosDoneInCycle}
             pomodoroDurationInMinutes={POMODORO_DURATION / 60}
           />
+
           <Card className="tasks-card">
             <div className="tasks-header">
               <div className="task-tabs">
-                {['all', 'active', 'completed'].map(tab => (
-                  <Button
-                    key={tab}
-                    variant={activeTab === tab ? 'primary' : 'ghost'}
-                    size="small"
-                    onClick={() => setActiveTab(tab as any)}
-                  >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </Button>
-                ))}
+                <Button
+                  variant={activeTab === 'all' ? 'primary' : 'ghost'}
+                  size="small"
+                  onClick={() => setActiveTab('all')}
+                >
+                  All Tasks
+                </Button>
+                <Button
+                  variant={activeTab === 'active' ? 'primary' : 'ghost'}
+                  size="small"
+                  onClick={() => setActiveTab('active')}
+                >
+                  Active
+                </Button>
+                <Button
+                  variant={activeTab === 'completed' ? 'primary' : 'ghost'}
+                  size="small"
+                  onClick={() => setActiveTab('completed')}
+                >
+                  Completed
+                </Button>
               </div>
-              <Button variant="primary" size="small" onClick={() => setIsAddTaskModalOpen(true)}>+</Button>
+              <Button variant="primary" size="small" onClick={openAddTaskModal}>
+                +
+              </Button>
             </div>
-            {tasks.filter(task => activeTab === 'all' || task.status === activeTab).length === 0 ? (
+            {filteredTasks.length === 0 ? (
               <p className="no-tasks">No tasks to display in this category.</p>
             ) : (
               <TaskList
-                tasks={tasks.filter(task => activeTab === 'all' || task.status === activeTab)}
+                tasks={filteredTasks}
                 selectedTaskId={selectedTaskId}
-                onSelectTask={(taskId) => {
-                  const task = tasks.find(t => t.id === taskId);
-                  if (task?.status === 'active') {
-                    setSelectedTaskId(taskId);
-                    setIsRunning(false);
-                    setTimerMode('pomodoro');
-                    setSecondsLeft(POMODORO_DURATION);
-                  }
-                }}
-                onToggleStatus={async (taskId) => {
-                  const task = tasks.find(t => t.id === taskId);
-                  if (!task) return;
-                  const newStatus = task.status === 'completed' ? 'active' : 'completed';
-                  await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
-                  setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
-                }}
-                onDeleteTask={(taskId) => {
-                 
-                  setTaskToDeleteId(taskId);
-                  setIsConfirmDeleteModalOpen(true);
-                
-                }}
-                onEditTask={(task) => {
-                  setEditingTask(task);
-                  setNewTaskName(task.name);
-                  setNewTaskCategory(task.category);
-                  setNewTaskPomodoroGoal(String(task.pomodoroGoal));
-                  setIsAddTaskModalOpen(true);
-                }}
+                onSelectTask={handleSelectTask}
+                onToggleStatus={handleToggleTaskStatus}
+                onDeleteTask={openDeleteConfirmModal}
+                onEditTask={handleEditTask}
               />
             )}
           </Card>
@@ -323,26 +359,34 @@ const handleSaveTask = async () => {
         onSave={handleSaveTask}
       />
 
-      
       <Modal
         isOpen={isConfirmDeleteModalOpen}
-        onClose={() => setIsConfirmDeleteModalOpen(false)}
+        onClose={cancelDelete}
         title="Confirm Deletion"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setIsConfirmDeleteModalOpen(false)}>
+            <Button variant="secondary" onClick={cancelDelete}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleDeleteConfirmed}>
+            <Button variant="danger" onClick={handleDeleteConfirmed}>
               Delete
             </Button>
           </>
         }
       >
-        <p>Are you sure you want to delete this task?</p>
-        <p className="text-sm text-gray-500">This action cannot be undone.</p>
+        <div className="confirm-delete-modal-content">
+          <p>Are you sure you want to delete this task?</p>
+          {taskToDeleteId && (
+            <p>
+              Task: "
+              <strong>
+                {tasks.find((task) => task.id === taskToDeleteId)?.name || 'Unknown Task'}
+              </strong>
+              "
+            </p>
+          )}
+        </div>
       </Modal>
-      
 
       <Modal
         isOpen={isBreakCompleteModalOpen}
@@ -353,18 +397,12 @@ const handleSaveTask = async () => {
           <>
             <Button variant="primary" onClick={() => {
               setIsBreakCompleteModalOpen(false);
-              setIsRunning(true);
+              setIsRunning(true); 
             }}>
               {timerMode === 'pomodoro' ? 'Start Focus' : 'Start Break'}
             </Button>
-            <Button variant="ghost" onClick={() => {
-              setIsBreakCompleteModalOpen(false);
-              setTimerMode('pomodoro');
-              setSecondsLeft(POMODORO_DURATION);
-              setIsRunning(false);
-              console.log('Dashboard: Skip Break clicked (logic removed).');
-            }}>
-              Skip Break
+            <Button variant="ghost" onClick={() => setIsBreakCompleteModalOpen(false)}>
+              Close
             </Button>
           </>
         }
@@ -372,7 +410,7 @@ const handleSaveTask = async () => {
         <div className="overwork-modal-content">
           <img
             src={timerMode === 'pomodoro' ? TIMER_ICON_PATH : COFFEE_ICON_PATH}
-            alt={timerMode === 'pomodoro' ? 'Timer icon' : 'Coffee mug icon'}
+            alt={timerMode === 'pomodoro' ? "Timer icon" : "Coffee mug icon"}
             className="overwork-icon"
           />
           <p>{getBreakCompleteModalMessage()}</p>
